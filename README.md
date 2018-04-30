@@ -1,0 +1,1 @@
+This theme was originally taken from PowerArrow Darker from [Awesome WM Copycats](https://github.com/lcpz/awesome-copycats), however it's been heavily modified since then. I mostly rewrote it anyway during the v4 config change.
