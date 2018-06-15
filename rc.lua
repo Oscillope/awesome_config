@@ -53,7 +53,8 @@ function run_once(cmd)
     awful.spawn.with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
 end
 
-run_once("compton -f --blur-background --blur-kern 7x7box --backend xr_glx_hybrid -D 4 -m 0.7 -b -C")
+run_once("nm-applet")
+run_once("compton -f --blur-background --blur-kern 7x7box --paint-on-overlay --backend glx -D 4 -m 0.7 -b -C")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "urxvt"
@@ -196,6 +197,87 @@ end
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
 screen.connect_signal("property::geometry", set_wallpaper)
 
+-- Net widget
+netwidget = wibox.widget.textbox()
+vicious.register(netwidget, vicious.widgets.net, '<span color="#7AC82E">${wlp3s0 down_kb}</span> <span color="#EEDDDD">↓↑</span> <span color="#46A8C3">${wlp3s0 up_kb} </span>', 3)
+neticon = wibox.widget.imagebox()
+neticon:set_image(beautiful.widget_net)
+netwidget:buttons(awful.util.table.join(awful.button({ }, 1, function () awful.util.spawn_with_shell(iptraf) end)))
+
+-- MEM widget
+memicon = wibox.widget.imagebox()
+memicon:set_image(beautiful.widget_mem)
+memwidget = wibox.widget.textbox()
+vicious.register(memwidget, vicious.widgets.mem, ' $2MB ', 13)
+
+-- CPU widget
+cpuicon = wibox.widget.imagebox()
+cpuicon:set_image(beautiful.widget_cpu)
+cpuwidget = wibox.widget.textbox()
+vicious.register(cpuwidget, vicious.widgets.cpu, ' $1% ', 3)
+cpuicon:buttons(awful.util.table.join(awful.button({ }, 1, function () awful.util.spawn(tasks, false) end)))
+
+-- Battery widget
+baticon = wibox.widget.imagebox()
+baticon:set_image(beautiful.widget_battery)
+batwidget = wibox.widget.textbox()
+empty = 0
+low = 0
+oldlevel = 0
+vicious.register(batwidget, vicious.widgets.bat,
+function (widget, args)
+  -- plugged
+  if (args[1] ~= '-' and args[1] ~= '+') then
+    baticon:set_image(beautiful.widget_ac)    
+    return '<span font="Terminess Powerline 13" rise="2000"> <span font="Terminess Powerline 9"> AC </span></span>'
+    -- critical
+  elseif (args[2] <= 5 and args[1] == '-') then
+    baticon:set_image(beautiful.widget_battery_empty)
+    if(empty == 0) then
+    naughty.notify({
+      text = "Below 5% Remaining.",
+      title = "Battery Low!",
+      position = "top_right",
+      timeout = 10,
+      fg="#000000",
+      bg="#ffffff",
+      screen = 1,
+      ontop = true,
+    })
+    empty = 1
+    end
+    -- low
+  elseif (args[2] <= 50 and args[1] == '-') then
+    baticon:set_image(beautiful.widget_battery_low)
+    if(low == 0 and args[2] <= 20) then
+    naughty.notify({
+      text = "Below 20% Remaining.",
+      title = "Battery Low!",
+      position = "top_right",
+      timeout = 10,
+      fg="#ffffff",
+      bg="#262729",
+      screen = 1,
+      ontop = true,
+    })
+    low = 1
+    end
+  elseif (args[1] == '+') then
+    baticon:set_image(beautiful.widget_ac)
+    low = 0
+    empty = 0
+  else
+    baticon:set_image(beautiful.widget_battery)
+    low = 0
+    empty = 0
+  end
+  if (args[2] ~= oldlevel) then	-- To save resources, only do this math if the level has changed.
+    batcolor = string.format('color="#%02x%02x%02x"', math.ceil(255 * -(args[2] / 100)^4) + 255, math.ceil(255 * (args[2] / 100)), math.ceil(255 * (args[2] / 100)^8))
+    oldlevel = args[2]
+  end
+  return '<span ' .. batcolor .. '>' .. args[2] .. '% </span>'
+end, 1, 'BAT0')
+
 -- Volume widget
 volicon = wibox.widget.imagebox()
 volicon:set_image(beautiful.widget_vol)
@@ -262,11 +344,6 @@ awful.screen.connect_for_each_screen(function(s)
     -- Create the quake term
     s.quake = quake({ app = terminal, screen = s })
 
-    -- Create the conky bar
-    if (s.index == 1) then
-        s.myconkybar = awful.wibar({ position = "left", screen = s, width = 108, height = 1024, opacity = 0, type = desktop, ontop = false })
-    end
-
     -- Add widgets to the wibox
     s.mywibox:setup {
         layout = wibox.layout.align.horizontal,
@@ -286,6 +363,19 @@ awful.screen.connect_for_each_screen(function(s)
             arrl,
             volicon,
             volumewidget,
+            arrl,
+            memicon,
+            memwidget,
+            arrl,
+            cpuicon,
+            cpuwidget,
+            arrl,
+            neticon,
+            netwidget,
+            arrl,
+            baticon,
+            batwidget,
+            arrl,
             mytextclock,
             arrl_ld,
             s.mylayoutbox,

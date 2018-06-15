@@ -9,26 +9,26 @@
 local theme = {}
 
 themes_dir                                  = os.getenv("HOME") .. "/.config/awesome/themes/powerarrow-darker"
-theme.wallpaper                             = "~/Pictures/wallpapers/IMGP6005.JPG"
+theme.wallpaper                             = "~/Pictures/wallpapers/06140010.jpg"
 
-theme.font                                  = "DejaVu Sans Mono 8"
+theme.font                                  = "DejaVu Sans Mono for Powerline 8"
 theme.fg_normal                             = "#DCDCCC"
-theme.fg_focus                              = "#00A4FF"
+theme.fg_focus                              = "#cc00ff"
 theme.fg_urgent                             = "#CC9393"
 theme.bg_normal                             = "#1A1A1AC8"
 -- theme.bg_focus                              = "#313131C8"
 theme.bg_urgent                             = "#1A1A1AC8"
 theme.border_width                          = "1"
 theme.border_normal                         = "#3F3F3F"
-theme.border_focus                          = "#00A4FF"
+theme.border_focus                          = "#cc00ff"
 theme.border_marked                         = "#CC9393"
 theme.titlebar_bg_focus                     = "#FFFFFFC8"
 theme.titlebar_bg_normal                    = "#FFFFFFC8"
-theme.taglist_fg_focus                      = "#00A4FF"
+theme.taglist_fg_focus                      = "#cc00ff"
 theme.tasklist_bg_focus                     = "#1A1A1A00"
-theme.tasklist_bg_normal					= "#31313100"
--- theme.tasklist_bg_focus						= "#313131"
-theme.tasklist_fg_focus                     = "#00A4FF"
+theme.tasklist_bg_normal                    = "#31313100"
+-- theme.tasklist_bg_focus                     = "#313131"
+theme.tasklist_fg_focus                     = "#cc00ff"
 theme.textbox_widget_margin_top             = 1
 theme.notify_fg                             = theme.fg_normal
 theme.notify_bg                             = theme.bg_normal
