@@ -54,12 +54,14 @@ function run_once(cmd)
 end
 
 run_once("nm-applet")
+run_once("light-locker")
 run_once("compton -f --blur-background --blur-kern 7x7box --paint-on-overlay --backend glx -D 4 -m 0.7 -b -C")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "urxvt"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
+tasks = terminal .. " -e htop"
 
 -- Default modkey.
 -- Usually, Mod4 is the key with a logo between Control and Alt.
@@ -214,7 +216,7 @@ vicious.register(memwidget, vicious.widgets.mem, ' $2MB ', 13)
 cpuicon = wibox.widget.imagebox()
 cpuicon:set_image(beautiful.widget_cpu)
 cpuwidget = wibox.widget.textbox()
-vicious.register(cpuwidget, vicious.widgets.cpu, ' $1% ', 3)
+vicious.register(cpuwidget, vicious.widgets.cpu, ' $2% $3% $4% $5% ', 3)
 cpuicon:buttons(awful.util.table.join(awful.button({ }, 1, function () awful.util.spawn(tasks, false) end)))
 
 -- Battery widget
@@ -464,7 +466,7 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey,        }, "z",      function () awful.spawn("/home/jason/Code/sonos_linein.py") end,
               {description = "switch sonos to play linein", group = "sound"}),
 
-    awful.key({modkey, "Control"  }, "Escape",function () awful.spawn("xscreensaver-command -activate") end,
+    awful.key({modkey, "Control"  }, "Escape",function () awful.spawn("light-locker-command -l") end,
               {description = "lock screen", group = "launcher"}),
 
     awful.key({ modkey, }, "'", function () awful.screen.focused().quake:toggle() end,
