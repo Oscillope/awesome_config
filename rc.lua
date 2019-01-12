@@ -55,7 +55,7 @@ end
 
 run_once("nm-applet")
 run_once("light-locker")
-run_once("compton -f --blur-background --blur-kern 7x7box --paint-on-overlay --backend glx -D 4 -m 0.7 -b -C")
+run_once("compton")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "urxvt"
@@ -230,7 +230,7 @@ vicious.register(batwidget, vicious.widgets.bat,
 function (widget, args)
   -- plugged
   if (args[1] ~= '-' and args[1] ~= '+') then
-    baticon:set_image(beautiful.widget_ac)    
+    baticon:set_image(beautiful.widget_ac)
     return '<span font="Terminess Powerline 13" rise="2000"> <span font="Terminess Powerline 9"> AC </span></span>'
     -- critical
   elseif (args[2] <= 5 and args[1] == '-') then
@@ -285,22 +285,22 @@ volicon = wibox.widget.imagebox()
 volicon:set_image(beautiful.widget_vol)
 volumewidget = wibox.widget.textbox()
 oldvol = 0
-vicious.register(volumewidget, vicious.widgets.volume,  
+vicious.register(volumewidget, vicious.widgets.volume,
 function (widget, args)
-    if (args[1] == 0) then volicon:set_image(beautiful.widget_vol_no)
-      elseif (args[1] <= 50) then  volicon:set_image(beautiful.widget_vol_low)
-      else volicon:set_image(beautiful.widget_vol)
+  if (args[2] == "♩") then volicon:set_image(beautiful.widget_vol_mute)
+  elseif (args[1] == 0) then volicon:set_image(beautiful.widget_vol_no)
+  elseif (args[1] <= 50) then  volicon:set_image(beautiful.widget_vol_low)
+  else volicon:set_image(beautiful.widget_vol)
+  end
+  if (args[1] ~= oldvol) then
+    if (args[1] > 0) then
+      volcolor = string.format('color="#%02x%02x%02x"', math.ceil(255 * 4*((args[1] - 50) / 100)^2), math.ceil(255 * -(args[1] / 100)^8) + 255, math.ceil(255 * -(args[1] / 100)^0.3)+255)
+    else
+      volcolor = ""
     end
-  --else volicon:set_image(beautiful.widget_vol_mute) 
-  --end
-	if (args[1] ~= oldvol) then
-		if (args[1] > 0) then
-			volcolor = string.format('color="#%02x%02x%02x"', math.ceil(255 * 4*((args[1] - 50) / 100)^2), math.ceil(255 * -(args[1] / 100)^8) + 255, math.ceil(255 * -(args[1] / 100)^0.3)+255)
-		end
-		else volcolor = ""
-		oldvol = args[1]
-	end
-	return '<span font="DejaVu Sans Mono 8" ' .. volcolor .. '>' .. args[1] .. ' </span>'
+    oldvol = args[1]
+  end
+  return '<span font="DejaVu Sans Mono 8" ' .. volcolor .. '>' .. args[1] .. ' </span>'
 end, 1, "Master")
 
 -- Separators
@@ -449,24 +449,30 @@ globalkeys = awful.util.table.join(
               {description = "quit awesome", group = "awesome"}),
 
     -- Custom program
-    awful.key({ "Control" }, "Up", function ()
-                                       awful.spawn("amixer set Master playback 1%+")
-                                       vicious.force({ volumewidget })
-                                   end, {description = "volume up", group = "sound"}),
-    awful.key({ "Control" }, "Down", function ()
-                                       awful.spawn("amixer set Master playback 1%-")
-                                       vicious.force({ volumewidget })
-                                     end, {description = "volume down", group = "sound"}),
+    awful.key({ }, "XF86AudioRaiseVolume", function ()
+                                               awful.spawn("amixer set Master playback 1%+")
+                                               vicious.force({ volumewidget })
+                                           end, {description = "volume up", group = "sound"}),
+    awful.key({ }, "XF86AudioLowerVolume", function ()
+                                             awful.spawn("amixer set Master playback 1%-")
+                                             vicious.force({ volumewidget })
+                                           end, {description = "volume down", group = "sound"}),
+    awful.key({ }, "XF86AudioMute", function ()
+                                      awful.spawn("amixer set Master playback toggle")
+                                      vicious.force({ volumewidget })
+                                    end, {description = "volume down", group = "sound"}),
+    awful.key({ }, "XF86AudioMicMute", function ()
+                                         awful.spawn("amixer set Capture toggle")
+                                         vicious.force({ volumewidget })
+                                       end, {description = "volume down", group = "sound"}),
     awful.key({ modkey,        }, "a",      function () awful.spawn("qutebrowser") end,
               {description = "open a web browser", group = "launcher"}),
     awful.key({ modkey,        }, "s",      function () awful.spawn("gvim") end,
               {description = "open an editor", group = "launcher"}),
     awful.key({ modkey,        }, "d",      function () awful.spawn("thunar") end,
               {description = "browse files", group = "launcher"}),
-    awful.key({ modkey,        }, "z",      function () awful.spawn("/home/jason/Code/sonos_linein.py") end,
-              {description = "switch sonos to play linein", group = "sound"}),
 
-    awful.key({modkey, "Control"  }, "Escape",function () awful.spawn("light-locker-command -l") end,
+    awful.key({ }, "XF86ScreenSaver",function () awful.spawn("light-locker-command -l") end,
               {description = "lock screen", group = "launcher"}),
 
     awful.key({ modkey, }, "'", function () awful.screen.focused().quake:toggle() end,
