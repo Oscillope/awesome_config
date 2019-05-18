@@ -58,7 +58,7 @@ run_once("light-locker")
 run_once("compton")
 
 -- This is used later as the default terminal and editor to run.
-terminal = "urxvt"
+terminal = "termite"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
 tasks = terminal .. " -e htop"
@@ -646,7 +646,6 @@ awful.rules.rules = {
           "Gpick",
           "Kruler",
           "MessageWin",  -- kalarm.
-          "Sxiv",
           "Wpa_gui",
           "pinentry",
           "veromix",
