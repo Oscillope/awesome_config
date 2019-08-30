@@ -198,6 +198,13 @@ local function set_wallpaper(s)
     end
 end
 
+local function take_screenshot(opts)
+    local date = os.date("%F_%H:%M:%S")
+    local fname = os.getenv("HOME") .. "/sshot_" .. date .. ".png"
+    awful.spawn("maim " .. (function (s) if s then return s else return "" end end)(opts) .. " -qu " .. fname)
+    naughty.notify({ title = "Screenshot Captured", text = "Saved to: " .. fname })
+end
+
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
 screen.connect_signal("property::geometry", set_wallpaper)
 
@@ -462,11 +469,11 @@ globalkeys = awful.util.table.join(
     awful.key({ }, "XF86AudioMute", function ()
                                       awful.spawn("amixer set Master playback toggle")
                                       vicious.force({ volumewidget })
-                                    end, {description = "volume down", group = "sound"}),
+                                    end, {description = "mute output", group = "sound"}),
     awful.key({ }, "XF86AudioMicMute", function ()
                                          awful.spawn("amixer set Capture toggle")
                                          vicious.force({ volumewidget })
-                                       end, {description = "volume down", group = "sound"}),
+                                       end, {description = "mute mic", group = "sound"}),
     awful.key({ modkey,        }, "a",      function () awful.spawn("qutebrowser") end,
               {description = "open a web browser", group = "launcher"}),
     awful.key({ modkey,        }, "s",      function () awful.spawn("gvim") end,
@@ -476,6 +483,11 @@ globalkeys = awful.util.table.join(
 
     awful.key({ }, "XF86ScreenSaver",function () awful.spawn("light-locker-command -l") end,
               {description = "lock screen", group = "launcher"}),
+
+    awful.key({ }, "Print",         function () take_screenshot() end,
+              {description = "take screenshot", group = "screen"}),
+    awful.key({ "Shift" }, "Print", function () take_screenshot("-s") end,
+              {description = "take partial screenshot", group = "screen"}),
 
     awful.key({ modkey, }, "'", function () awful.screen.focused().quake:toggle() end,
               {description = "dropdown terminal", group = "launcher"}),
