@@ -190,6 +190,13 @@ local function set_wallpaper(s)
     end
 end
 
+local function take_screenshot(opts)
+    local date = os.date("%F_%H:%M:%S")
+    local fname = os.getenv("HOME") .. "/sshot_" .. date .. ".png"
+    awful.spawn("maim " .. (function (s) if s then return s else return "" end end)(opts) .. " -qu " .. fname)
+    naughty.notify({ title = "Screenshot Captured", text = "Saved to: " .. fname })
+end
+
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
 screen.connect_signal("property::geometry", set_wallpaper)
 
@@ -496,6 +503,11 @@ end,
 
     awful.key({ }, "XF86ScreenSaver",function () awful.spawn("dm-tool switch-to-greeter") end,
               {description = "lock screen", group = "launcher"}),
+
+    awful.key({ }, "Print",         function () take_screenshot() end,
+              {description = "take screenshot", group = "screen"}),
+    awful.key({ "Shift" }, "Print", function () take_screenshot("-s") end,
+              {description = "take partial screenshot", group = "screen"}),
 
     awful.key({ modkey, }, "'", function () awful.screen.focused().quake:toggle() end,
               {description = "dropdown terminal", group = "launcher"}),
