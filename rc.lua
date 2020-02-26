@@ -55,11 +55,11 @@ end
 
 run_once("nm-applet")
 run_once("light-locker")
-run_once("compton")
+run_once("picom")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "termite"
-editor = os.getenv("EDITOR") or "nano"
+editor = os.getenv("EDITOR") or "vim"
 editor_cmd = terminal .. " -e " .. editor
 tasks = terminal .. " -e htop"
 
@@ -72,22 +72,14 @@ modkey = "Mod4"
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
-    awful.layout.suit.tile,
     awful.layout.suit.tile.left,
-    awful.layout.suit.tile.bottom,
-    awful.layout.suit.tile.top,
+    awful.layout.suit.magnifier,
     awful.layout.suit.fair,
     awful.layout.suit.fair.horizontal,
-    awful.layout.suit.spiral,
-    awful.layout.suit.spiral.dwindle,
-    awful.layout.suit.max,
-    awful.layout.suit.max.fullscreen,
-    awful.layout.suit.magnifier,
-    awful.layout.suit.corner.nw,
+    awful.layout.suit.tile,
+    awful.layout.suit.tile.bottom,
+    awful.layout.suit.tile.top,
     awful.layout.suit.floating,
-    -- awful.layout.suit.corner.ne,
-    -- awful.layout.suit.corner.sw,
-    -- awful.layout.suit.corner.se,
 }
 -- }}}
 
@@ -233,7 +225,7 @@ function (widget, args)
   -- plugged
   if (args[1] ~= '-' and args[1] ~= '+') then
     baticon:set_image(beautiful.widget_ac)
-    return '<span font="Terminess Powerline 13" rise="2000"> <span font="Terminess Powerline 9"> AC </span></span>'
+    return 'AC '
     -- critical
   elseif (args[2] <= 5 and args[1] == '-') then
     baticon:set_image(beautiful.widget_battery_empty)
@@ -302,8 +294,13 @@ function (widget, args)
     end
     oldvol = args[1]
   end
-  return '<span font="DejaVu Sans Mono 8" ' .. volcolor .. '>' .. args[1] .. ' </span>'
+  return '<span ' .. volcolor .. '>' .. args[1] .. ' </span>'
 end, 1, "Master")
+
+-- Layout info widget
+function update_layout_info(t)
+  t.screen.mylayoutinfo.text = string.format('C: %u M: %u ', t.column_count, t.master_count)
+end
 
 -- Separators
 arrl = wibox.widget.imagebox()
@@ -348,6 +345,13 @@ awful.screen.connect_for_each_screen(function(s)
     -- Create the quake term
     s.quake = quake({ app = terminal, screen = s })
 
+    -- Create a layout info widget
+    s.mylayoutinfo = wibox.widget.textbox()
+    update_layout_info(s.selected_tag)
+    awful.tag.attached_connect_signal(s, "property::master_count", update_layout_info)
+    awful.tag.attached_connect_signal(s, "property::column_count", update_layout_info)
+    awful.tag.attached_connect_signal(s, "property::selected", update_layout_info)
+
     -- Add widgets to the wibox
     s.mywibox:setup {
         layout = wibox.layout.align.horizontal,
@@ -381,6 +385,8 @@ awful.screen.connect_for_each_screen(function(s)
             batwidget,
             arrl,
             mytextclock,
+            arrl,
+            s.mylayoutinfo,
             arrl_ld,
             s.mylayoutbox,
         },
@@ -462,11 +468,25 @@ globalkeys = awful.util.table.join(
     awful.key({ }, "XF86AudioMute", function ()
                                       awful.spawn("amixer set Master playback toggle")
                                       vicious.force({ volumewidget })
-                                    end, {description = "volume down", group = "sound"}),
+                                    end, {description = "mute output", group = "sound"}),
     awful.key({ }, "XF86AudioMicMute", function ()
                                          awful.spawn("amixer set Capture toggle")
                                          vicious.force({ volumewidget })
-                                       end, {description = "volume down", group = "sound"}),
+                                       end, {description = "mute mic", group = "sound"}),
+
+    awful.key({ }, "XF86AudioPlay", function () awful.util.spawn("spotify-control PlayPause")
+end,
+              {description = "play/pause", group = "spotify"}),
+
+    awful.key({ }, "XF86AudioStop", function () awful.util.spawn("spotify-control Stop") end,
+              {description = "stop", group = "spotify"}),
+
+    awful.key({ }, "XF86AudioNext", function () awful.util.spawn("spotify-control Next") end,
+              {description = "next track", group = "spotify"}),
+
+    awful.key({ }, "XF86AudioPrev", function () awful.util.spawn("spotify-control Previous") end,
+              {description = "prev track", group = "spotify"}),
+
     awful.key({ modkey,        }, "a",      function () awful.spawn("qutebrowser") end,
               {description = "open a web browser", group = "launcher"}),
     awful.key({ modkey,        }, "s",      function () awful.spawn("gvim") end,
@@ -474,7 +494,7 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey,        }, "d",      function () awful.spawn("thunar") end,
               {description = "browse files", group = "launcher"}),
 
-    awful.key({ }, "XF86ScreenSaver",function () awful.spawn("light-locker-command -l") end,
+    awful.key({ }, "XF86ScreenSaver",function () awful.spawn("dm-tool switch-to-greeter") end,
               {description = "lock screen", group = "launcher"}),
 
     awful.key({ modkey, }, "'", function () awful.screen.focused().quake:toggle() end,
@@ -574,6 +594,18 @@ for i = 1, 9 do
                         end
                   end,
                   {description = "view tag #"..i, group = "tag"}),
+        -- View tag on other screen.
+        awful.key({ modkey, "Mod1" }, "#" .. i + 9,
+                  function ()
+                        -- jump to screen
+                        awful.screen.focus_relative(1)
+                        local screen = awful.screen.focused()
+                        local tag = screen.tags[i]
+                        if tag then
+                           tag:view_only()
+                        end
+                  end,
+                  {description = "view tag #"..i.." on screen", group = "tag"}),
         -- Toggle tag display.
         awful.key({ modkey, "Control" }, "#" .. i + 9,
                   function ()
@@ -595,6 +627,18 @@ for i = 1, 9 do
                      end
                   end,
                   {description = "move focused client to tag #"..i, group = "tag"}),
+        -- Move client to tag on screen.
+        awful.key({ modkey, "Mod1", "Control" }, "#" .. i + 9,
+                  function ()
+                      if client.focus then
+                          client.focus:move_to_screen()
+                          local tag = client.focus.screen.tags[i]
+                          if tag then
+                              client.focus:move_to_tag(tag)
+                          end
+                     end
+                  end,
+                  {description = "move focused client to tag #"..i.." on screen", group = "tag"}),
         -- Toggle tag on focused client.
         awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
                   function ()
@@ -649,7 +693,9 @@ awful.rules.rules = {
           "Wpa_gui",
           "pinentry",
           "veromix",
-          "xtightvncviewer"},
+          "xtightvncviewer",
+          "zoom",
+          "gimp"},
 
         name = {
           "Event Tester",  -- xev.
