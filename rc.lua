@@ -131,7 +131,7 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- {{{ Wibar
 -- Create a textclock widget
-mytextclock = wibox.widget.textclock()
+mytextclock = wibox.widget.textclock("%a %m-%d %H:%M ")
 local month_calendar = awful.widget.calendar_popup.month({opacity = 60, bg = "#00000000"})
 month_calendar:attach( mytextclock, "tr", {on_hover=false})
 
@@ -211,13 +211,13 @@ netwidget:buttons(awful.util.table.join(awful.button({ }, 1, function () awful.u
 memicon = wibox.widget.imagebox()
 memicon:set_image(beautiful.widget_mem)
 memwidget = wibox.widget.textbox()
-vicious.register(memwidget, vicious.widgets.mem, ' $2MB ', 13)
+vicious.register(memwidget, vicious.widgets.mem, '$2MB ', 13)
 
 -- CPU widget
 cpuicon = wibox.widget.imagebox()
 cpuicon:set_image(beautiful.widget_cpu)
 cpuwidget = wibox.widget.textbox()
-vicious.register(cpuwidget, vicious.widgets.cpu, ' $2% $3% $4% $5% ', 3)
+vicious.register(cpuwidget, vicious.widgets.cpu, '$2% $3% $4% $5% ', 3)
 cpuicon:buttons(awful.util.table.join(awful.button({ }, 1, function () awful.util.spawn(tasks, false) end)))
 
 -- Battery widget
