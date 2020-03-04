@@ -53,9 +53,9 @@ function run_once(cmd)
     awful.spawn.with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
 end
 
-run_once("nm-applet")
+run_once("netmon")
 run_once("light-locker")
-run_once("picom")
+run_once("picom --experimental-backends")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "termite"
@@ -501,7 +501,7 @@ end,
     awful.key({ modkey,        }, "d",      function () awful.spawn("thunar") end,
               {description = "browse files", group = "launcher"}),
 
-    awful.key({ }, "XF86ScreenSaver",function () awful.spawn("dm-tool switch-to-greeter") end,
+    awful.key({ }, "XF86ScreenSaver",function () awful.spawn("dm-tool lock") end,
               {description = "lock screen", group = "launcher"}),
 
     awful.key({ }, "Print",         function () take_screenshot() end,
