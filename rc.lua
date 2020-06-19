@@ -53,10 +53,13 @@ function run_once(cmd)
     awful.spawn.with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
 end
 
-run_once("compton -f --blur-background --blur-kern 7x7box --backend xr_glx_hybrid -D 4 -m 0.7 -b -C")
+run_once("conky")
+run_once("picom --experimental-backends")
+run_once("dropbox")
+run_once("synergy")
 
 -- This is used later as the default terminal and editor to run.
-terminal = "urxvt"
+terminal = "termite"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -69,22 +72,13 @@ modkey = "Mod4"
 
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
-    awful.layout.suit.tile,
+    awful.layout.suit.magnifier,
     awful.layout.suit.tile.left,
+    awful.layout.suit.fair.horizontal,
     awful.layout.suit.tile.bottom,
     awful.layout.suit.tile.top,
     awful.layout.suit.fair,
-    awful.layout.suit.fair.horizontal,
-    awful.layout.suit.spiral,
-    awful.layout.suit.spiral.dwindle,
-    awful.layout.suit.max,
-    awful.layout.suit.max.fullscreen,
-    awful.layout.suit.magnifier,
-    awful.layout.suit.corner.nw,
     awful.layout.suit.floating,
-    -- awful.layout.suit.corner.ne,
-    -- awful.layout.suit.corner.sw,
-    -- awful.layout.suit.corner.se,
 }
 -- }}}
 
@@ -137,6 +131,8 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 -- {{{ Wibar
 -- Create a textclock widget
 mytextclock = wibox.widget.textclock()
+local month_calendar = awful.widget.calendar_popup.month({opacity = 60, bg = "#00000000"})
+month_calendar:attach( mytextclock, "tr", {on_hover=true})
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = awful.util.table.join(
@@ -201,23 +197,27 @@ volicon = wibox.widget.imagebox()
 volicon:set_image(beautiful.widget_vol)
 volumewidget = wibox.widget.textbox()
 oldvol = 0
-vicious.register(volumewidget, vicious.widgets.volume,  
+vicious.register(volumewidget, vicious.widgets.volume,
 function (widget, args)
-    if (args[1] == 0) then volicon:set_image(beautiful.widget_vol_no)
-      elseif (args[1] <= 50) then  volicon:set_image(beautiful.widget_vol_low)
-      else volicon:set_image(beautiful.widget_vol)
+    if (args[2] == "♩") then volicon:set_image(beautiful.widget_vol_mute)
+    elseif (args[1] == 0) then volicon:set_image(beautiful.widget_vol_no)
+    elseif (args[1] <= 50) then  volicon:set_image(beautiful.widget_vol_low)
+    else volicon:set_image(beautiful.widget_vol)
     end
-  --else volicon:set_image(beautiful.widget_vol_mute) 
-  --end
-	if (args[1] ~= oldvol) then
-		if (args[1] > 0) then
-			volcolor = string.format('color="#%02x%02x%02x"', math.ceil(255 * 4*((args[1] - 50) / 100)^2), math.ceil(255 * -(args[1] / 100)^8) + 255, math.ceil(255 * -(args[1] / 100)^0.3)+255)
-		end
-		else volcolor = ""
-		oldvol = args[1]
-	end
-	return '<span font="DejaVu Sans Mono 8" ' .. volcolor .. '>' .. args[1] .. ' </span>'
+    if (args[1] ~= oldvol) then
+      if (args[1] > 0) then
+        volcolor = string.format('color="#%02x%02x%02x"', math.ceil(255 * 4*((args[1] - 50) / 100)^2), math.ceil(255 * -(args[1] / 100)^8) + 255, math.ceil(255 * -(args[1] / 100)^0.3)+255)
+      end
+      else volcolor = ""
+      oldvol = args[1]
+    end
+    return '<span font="DejaVu Sans Mono 8" ' .. volcolor .. '>' .. args[1] .. ' </span>'
 end, 1, "Master")
+
+-- Layout info widget
+function update_layout_info(t)
+  t.screen.mylayoutinfo.text = string.format('Cols: %u Masters: %u ', t.column_count, t.master_count)
+end
 
 -- Separators
 arrl = wibox.widget.imagebox()
@@ -238,7 +238,7 @@ awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1 + s.index])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -261,6 +261,13 @@ awful.screen.connect_for_each_screen(function(s)
 
     -- Create the quake term
     s.quake = quake({ app = terminal, screen = s })
+
+    -- Create a layout info widget
+    s.mylayoutinfo = wibox.widget.textbox()
+    update_layout_info(s.selected_tag)
+    awful.tag.attached_connect_signal(s, "property::master_count", update_layout_info)
+    awful.tag.attached_connect_signal(s, "property::column_count", update_layout_info)
+    awful.tag.attached_connect_signal(s, "property::selected", update_layout_info)
 
     -- Create the conky bar
     if (s.index == 1) then
@@ -286,7 +293,10 @@ awful.screen.connect_for_each_screen(function(s)
             arrl,
             volicon,
             volumewidget,
+            arrl,
             mytextclock,
+            arrl,
+            s.mylayoutinfo,
             arrl_ld,
             s.mylayoutbox,
         },
@@ -543,14 +553,15 @@ awful.rules.rules = {
         },
         class = {
           "Arandr",
+          "Conky",
           "Gpick",
           "Kruler",
           "MessageWin",  -- kalarm.
-          "Sxiv",
           "Wpa_gui",
           "pinentry",
           "veromix",
-          "xtightvncviewer"},
+          "xtightvncviewer",
+          "zoom"},
 
         name = {
           "Event Tester",  -- xev.

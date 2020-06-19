@@ -9,7 +9,7 @@
 local theme = {}
 
 themes_dir                                  = os.getenv("HOME") .. "/.config/awesome/themes/powerarrow-darker"
-theme.wallpaper                             = "~/Pictures/wallpapers/IMGP6005.JPG"
+theme.wallpaper                             = "~/Pictures/wallpapers/img012-dusted.jpg"
 
 theme.font                                  = "DejaVu Sans Mono 8"
 theme.fg_normal                             = "#DCDCCC"
