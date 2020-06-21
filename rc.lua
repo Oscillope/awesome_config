@@ -14,6 +14,8 @@ local hotkeys_popup = require("awful.hotkeys_popup").widget
 
 local quake = require("quake")
 
+local revelation = require("revelation")
+
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
 -- another config (This code will only ever execute for the fallback config)
@@ -42,6 +44,9 @@ end
 -- {{{ Variable definitions
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(os.getenv("HOME") .. "/.config/awesome/themes/powerarrow-darker/theme.lua")
+
+-- Revelation init
+revelation.init()
 
 -- {{{ Autostart
 function run_once(cmd)
@@ -328,7 +333,7 @@ awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1 + s.index])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -446,14 +451,10 @@ globalkeys = awful.util.table.join(
               {description = "focus the previous screen", group = "screen"}),
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto,
               {description = "jump to urgent client", group = "client"}),
-    awful.key({ modkey,           }, "Tab",
-        function ()
-            awful.client.focus.history.previous()
-            if client.focus then
-                client.focus:raise()
-            end
-        end,
-        {description = "go back", group = "client"}),
+    awful.key({ modkey,           }, "Tab", revelation,
+              {description = "show all clients", group = "client"}),
+    awful.key({ modkey, "Shift"    }, "Tab", function () revelation({curr_tag_only=true}) end,
+              {description = "show clients on current tag", group = "client"}),
 
     -- Standard program
     awful.key({ modkey,           }, "Return", function () awful.spawn(terminal) end,
@@ -699,6 +700,7 @@ awful.rules.rules = {
         },
         class = {
           "Arandr",
+          "Conky",
           "Gpick",
           "Kruler",
           "MessageWin",  -- kalarm.
