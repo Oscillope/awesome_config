@@ -15,6 +15,7 @@ local hotkeys_popup = require("awful.hotkeys_popup").widget
 local quake = require("quake")
 
 local revelation = require("revelation")
+local net_widgets = require("net_widgets")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -58,7 +59,6 @@ function run_once(cmd)
     awful.spawn.with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
 end
 
-run_once("netmon")
 run_once("light-locker")
 run_once("picom --experimental-backends")
 
@@ -205,12 +205,11 @@ end
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
 screen.connect_signal("property::geometry", set_wallpaper)
 
--- Net widget
-netwidget = wibox.widget.textbox()
-vicious.register(netwidget, vicious.widgets.net, '<span color="#7AC82E">${wlp3s0 down_kb}</span> <span color="#EEDDDD">↓↑</span> <span color="#46A8C3">${wlp3s0 up_kb} </span>', 3)
-neticon = wibox.widget.imagebox()
-neticon:set_image(beautiful.widget_net)
-netwidget:buttons(awful.util.table.join(awful.button({ }, 1, function () awful.util.spawn_with_shell(iptraf) end)))
+-- ETH widget
+net_eth = net_widgets.indicator({interfaces = {"enp0s25"}, timeout = 20})
+
+-- WIFI widget
+net_wifi = net_widgets.wireless({interface = "wlp3s0", timeout = 11})
 
 -- MEM widget
 memicon = wibox.widget.imagebox()
@@ -284,7 +283,7 @@ function (widget, args)
     oldlevel = args[2]
   end
   return '<span ' .. batcolor .. '>' .. args[2] .. '% </span>'
-end, 1, 'BAT0')
+end, 10, 'BAT0')
 
 -- Volume widget
 volicon = wibox.widget.imagebox()
@@ -333,7 +332,7 @@ awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1 + s.index])
+    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -390,8 +389,8 @@ awful.screen.connect_for_each_screen(function(s)
             cpuicon,
             cpuwidget,
             arrl,
-            neticon,
-            netwidget,
+            net_eth,
+            net_wifi,
             arrl,
             baticon,
             batwidget,
