@@ -27,19 +27,19 @@ theme.titlebar_bg_normal                    = "#FFFFFFC8"
 theme.taglist_fg_focus                      = "#bf00ff"
 theme.tasklist_bg_focus                     = "#1A1A1A00"
 theme.tasklist_bg_normal                    = "#31313100"
--- theme.tasklist_bg_focus                     = "#313131"
 theme.tasklist_fg_focus                     = "#bf00ff"
 theme.textbox_widget_margin_top             = 1
-theme.notify_fg                             = theme.fg_normal
-theme.notify_bg                             = theme.bg_normal
-theme.notify_border                         = theme.border_focus
+theme.notification_fg                       = theme.fg_normal
+theme.notification_bg                       = theme.bg_normal
+theme.notification_border_color             = theme.border_focus
+theme.notification_font                     = "DejaVu Sans Mono 12"
 theme.awful_widget_height                   = 24
 theme.awful_widget_margin_top               = 2
 theme.mouse_finder_color                    = "#CC9393"
 theme.menu_height                           = "16"
 theme.menu_width                            = "140"
 
-theme.awesome_icon							= themes_dir .. "/icons/awesome.png"
+theme.awesome_icon                          = themes_dir .. "/icons/awesome.png"
 
 theme.menu_submenu_icon                     = themes_dir .. "/icons/submenu.png"
 theme.taglist_squares_sel                   = themes_dir .. "/icons/square_sel.png"
