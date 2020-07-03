@@ -485,6 +485,18 @@ for i = 1, 9 do
                         end
                   end,
                   {description = "view tag #"..i, group = "tag"}),
+        -- View tag on other screen.
+        awful.key({ modkey, "Mod1" }, "#" .. i + 9,
+                  function ()
+                        -- jump to screen
+                        awful.screen.focus_relative(1)
+                        local screen = awful.screen.focused()
+                        local tag = screen.tags[i]
+                        if tag then
+                           tag:view_only()
+                        end
+                  end,
+                  {description = "view tag #"..i.." on other screen", group = "tag"}),
         -- Toggle tag display.
         awful.key({ modkey, "Control" }, "#" .. i + 9,
                   function ()
@@ -506,6 +518,18 @@ for i = 1, 9 do
                      end
                   end,
                   {description = "move focused client to tag #"..i, group = "tag"}),
+        -- Move client to tag on other screen.
+        awful.key({ modkey, "Mod1", "Shift" }, "#" .. i + 9,
+                  function ()
+                      if client.focus then
+                          client.focus:move_to_screen()
+                          local tag = client.focus.screen.tags[i]
+                          if tag then
+                              client.focus:move_to_tag(tag)
+                          end
+                     end
+                  end,
+                  {description = "move focused client to tag #"..i.." on other screen", group = "tag"}),
         -- Toggle tag on focused client.
         awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
                   function ()
@@ -651,4 +675,17 @@ end)
 
 client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
+client.connect_signal("property::urgent", function(c)
+                                            if (c.urgent) then
+                                              naughty.notify({ bg = "#00A4FFC8",
+                                                               timeout = 10,
+                                                               title = "Ding ding!",
+                                                               run = function(n)
+                                                                       c.first_tag:view_only()
+                                                                       naughty.destroy(n, naughty.notificationClosedReason.dismissedByUser)
+                                                                     end,
+                                                               text = string.format("Client %s (tag %s) wants your attention!", c.name, c.first_tag.name)
+                                                             })
+                                            end
+                                          end)
 -- }}}
