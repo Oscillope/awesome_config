@@ -799,7 +799,7 @@ client.connect_signal("focus", function(c) c.border_color = beautiful.border_foc
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
 client.connect_signal("property::urgent", function(c)
                                             if (c.urgent) then
-                                              naughty.notify({ bg = "#00A4FFC8",
+                                              naughty.notify({ bg = "#BF00FFC8",
                                                                timeout = 10,
                                                                title = "Ding ding!",
                                                                run = function(n)
