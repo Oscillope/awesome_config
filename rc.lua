@@ -59,9 +59,8 @@ function run_once(cmd)
 end
 
 run_once("conky")
-run_once("picom --experimental-backends")
+--run_once("picom --experimental-backends")
 run_once("dropbox")
-run_once("synergy")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "termite"
@@ -224,6 +223,55 @@ function update_layout_info(t)
   t.screen.mylayoutinfo.text = string.format('Cols: %u Masters: %u ', t.column_count, t.master_count)
 end
 
+-- Spotify widget
+status_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlaybackStatus"
+metadata_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Metadata"
+spotiwidget = awful.widget.watch(status_cmd, 8,
+function (widget, stdout, stderr, exitreason, exitcode)
+    if exitcode == 0 and stdout:match("^Playing") then
+        local artist = nil
+        local title = nil
+        local album = nil
+        -- This stuff runs asynchronously, so the parent widget function can't expect to do anything with its output
+        -- (as it will have returned by then). But it still can use the local variables above. Scoping is weird, huh?
+        awful.spawn.with_line_callback(metadata_cmd, {
+            -- Called on every line of output. Parses dbus metadata and finds the correct strings.
+            stdout = function (line)
+                temp = line:match("^xesam:artist: (.*)")
+                if temp then
+                    artist = temp
+                    return
+                end
+                temp = line:match("^xesam:title: (.*)")
+                if temp then
+                    title = temp
+                    return
+                end
+                temp = line:match("^xesam:album: (.*)")
+                if temp then
+                    album = temp
+                    return
+                end
+            end,
+            -- Called when qdbus stops outputting. Writes the strings to the widget.
+            output_done = function ()
+                widget:set_markup_silently(
+                    string.format('<span foreground="#00ff00"> ></span> %s | %s | %s ', title, artist, album))
+            end
+        })
+    else
+        widget:set_markup_silently('<span foreground="#ff6600"> || </span>')
+    end
+end, spotitext)
+spotify_scroller = wibox.widget {
+    layout = wibox.container.scroll.horizontal,
+    max_size = 420,
+    step_function = wibox.container.scroll.step_functions
+                    .waiting_nonlinear_back_and_forth,
+    speed = 50,
+    { widget = spotiwidget }
+}
+
 -- Separators
 arrl = wibox.widget.imagebox()
 arrl:set_image(beautiful.arrl)
@@ -256,7 +304,7 @@ awful.screen.connect_for_each_screen(function(s)
                            awful.button({ }, 4, function () awful.layout.inc( 1) end),
                            awful.button({ }, 5, function () awful.layout.inc(-1) end)))
     -- Create a taglist widget
-    s.mytaglist = awful.widget.taglist(s, awful.widget.taglist.filter.all, taglist_buttons)
+    s.mytaglist = awful.widget.taglist({screen=s, filter=awful.widget.taglist.filter.all, buttons=taglist_buttons})
 
     -- Create a tasklist widget
     s.mytasklist = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, tasklist_buttons)
@@ -274,11 +322,6 @@ awful.screen.connect_for_each_screen(function(s)
     awful.tag.attached_connect_signal(s, "property::column_count", update_layout_info)
     awful.tag.attached_connect_signal(s, "property::selected", update_layout_info)
 
-    -- Create the conky bar
-    if (s.index == 1) then
-        s.myconkybar = awful.wibar({ position = "left", screen = s, width = 108, height = 1024, opacity = 0, type = desktop, ontop = false })
-    end
-
     -- Add widgets to the wibox
     s.mywibox:setup {
         layout = wibox.layout.align.horizontal,
@@ -294,11 +337,19 @@ awful.screen.connect_for_each_screen(function(s)
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
             arrl,
-            wibox.widget.systray(),
-            arrl,
-            volicon,
-            volumewidget,
-            arrl,
+            awful.widget.only_on_screen(
+                wibox.widget {
+                    layout = wibox.layout.fixed.horizontal,
+                        spotify_scroller,
+                        arrl,
+                        volicon,
+                        volumewidget,
+                        arrl,
+                        wibox.widget.systray(),
+                        arrl,
+                },
+                "primary"
+            ),
             mytextclock,
             arrl,
             s.mylayoutinfo,
@@ -578,7 +629,6 @@ awful.rules.rules = {
         },
         class = {
           "Arandr",
-          "Conky",
           "Gpick",
           "Kruler",
           "MessageWin",  -- kalarm.
@@ -600,6 +650,16 @@ awful.rules.rules = {
     -- Add titlebars to normal clients and dialogs
     { rule_any = {type = { "normal", "dialog" }
       }, properties = { titlebars_enabled = false }
+    },
+
+    { rule_any = {class = {"Conky"}},
+      properties = {
+              border_width = 0,
+              sticky = true,
+              focusable = false,
+              floating = true,
+              size_hints_honor = true
+              }
     },
 
     -- Set Firefox to always map on the tag named "2" on screen 1.
