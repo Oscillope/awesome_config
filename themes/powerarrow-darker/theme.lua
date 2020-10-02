@@ -7,24 +7,28 @@
 
 
 local theme = {}
+local gears = require("gears")
 
 themes_dir                                  = os.getenv("HOME") .. "/.config/awesome/themes/powerarrow-darker"
-theme.wallpaper                             = "~/Pictures/wallpapers/img012-dusted.jpg"
+theme.wallpaper                             = "~/Pictures/wallpapers/img005.jpg"
 
 theme.font                                  = "DejaVu Sans Mono 8"
 theme.fg_normal                             = "#DCDCCC"
 theme.fg_focus                              = "#00A4FF"
-theme.fg_urgent                             = "#CC9393"
 theme.bg_normal                             = "#1A1A1AC8"
+theme.wibar_bg                              = "linear:0,0:0,24:0,#3E3E3EC8:8,#1A1A1AC8"
 -- theme.bg_focus                              = "#313131C8"
-theme.bg_urgent                             = "#1A1A1AC8"
+theme.bg_urgent                             = "#CC6666C8"
 theme.border_width                          = "1"
 theme.border_normal                         = "#3F3F3F"
 theme.border_focus                          = "#00A4FF"
 theme.border_marked                         = "#CC9393"
 theme.titlebar_bg_focus                     = "#FFFFFFC8"
 theme.titlebar_bg_normal                    = "#FFFFFFC8"
-theme.taglist_fg_focus                      = "#00A4FF"
+theme.taglist_fg_focus                      = "#DCDCCC"
+theme.taglist_bg_focus                      = "linear:0,0:0,16:0,#B294BBC8:6,#85678FC8"
+theme.taglist_bg_occupied                   = "#5F819DC8"
+theme.taglist_bg_urgent                     = "#CC666666"
 theme.tasklist_bg_focus                     = "#1A1A1A00"
 theme.tasklist_bg_normal                    = "#31313100"
 theme.tasklist_fg_focus                     = "#00A4FF"
@@ -33,6 +37,7 @@ theme.notification_fg                       = theme.fg_normal
 theme.notification_bg                       = theme.bg_normal
 theme.notification_border_color             = theme.border_focus
 theme.notification_font                     = "DejaVu Sans Mono 12"
+theme.prompt_bg                             = theme.bg_normal
 theme.awful_widget_height                   = 24
 theme.awful_widget_margin_top               = 2
 theme.mouse_finder_color                    = "#CC9393"
@@ -42,8 +47,12 @@ theme.menu_width                            = "140"
 theme.awesome_icon                          = themes_dir .. "/icons/awesome.png"
 
 theme.menu_submenu_icon                     = themes_dir .. "/icons/submenu.png"
-theme.taglist_squares_sel                   = themes_dir .. "/icons/square_sel.png"
-theme.taglist_squares_unsel                 = themes_dir .. "/icons/square_unsel.png"
+theme.taglist_spacing                       = 4
+theme.taglist_shape                         = gears.shape.powerline
+theme.taglist_shape_focus                   = gears.shape.circle
+theme.taglist_shape_urgent                  = gears.shape.rounded_rect
+--theme.taglist_squares_sel                   = themes_dir .. "/icons/square_sel.png"
+--theme.taglist_squares_unsel                 = themes_dir .. "/icons/square_unsel.png"
 
 theme.layout_tile                           = themes_dir .. "/icons/tile.png"
 theme.layout_tileleft                       = themes_dir .. "/icons/tileleft.png"
