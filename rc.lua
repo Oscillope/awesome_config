@@ -60,7 +60,6 @@ end
 
 run_once("conky")
 run_once("picom --experimental-backends")
-run_once("dropbox")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "termite"
@@ -195,6 +194,13 @@ end
 
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
 screen.connect_signal("property::geometry", set_wallpaper)
+
+local function take_screenshot(opts)
+    local date = os.date("%F_%H:%M:%S")
+    local fname = os.getenv("HOME") .. "/sshot_" .. date .. ".png"
+    awful.spawn("maim " .. (function (s) if s then return s else return "" end end)(opts) .. " -qu " .. fname)
+    naughty.notify({ title = "Screenshot Captured", text = "Saved to: " .. fname })
+end
 
 -- Volume widget
 volicon = wibox.widget.imagebox()
@@ -438,6 +444,11 @@ globalkeys = awful.util.table.join(
 
     awful.key({modkey, "Control"  }, "Escape",function () awful.spawn("xscreensaver-command -activate") end,
               {description = "lock screen", group = "launcher"}),
+
+    awful.key({ }, "Print",         function () take_screenshot() end,
+              {description = "take screenshot", group = "screen"}),
+    awful.key({ "Shift" }, "Print", function () take_screenshot("-s") end,
+              {description = "take partial screenshot", group = "screen"}),
 
     awful.key({ modkey, }, "'", function () awful.screen.focused().quake:toggle() end,
               {description = "dropdown terminal", group = "launcher"}),
