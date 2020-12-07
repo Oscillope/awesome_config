@@ -228,7 +228,7 @@ status_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.m
 metadata_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Metadata"
 spotiwidget = awful.widget.watch(status_cmd, 8,
 function (widget, stdout, stderr, exitreason, exitcode)
-    if exitcode == 0 and stdout:match("^Playing") then
+    if exitcode == 0 and stdout:match("Playing") then
         local artist = nil
         local title = nil
         local album = nil
@@ -256,11 +256,11 @@ function (widget, stdout, stderr, exitreason, exitcode)
             -- Called when qdbus stops outputting. Writes the strings to the widget.
             output_done = function ()
                 widget:set_markup_silently(
-                    string.format('<span foreground="#00ff00"> ></span> %s | %s | %s ', title, artist, album))
+                    string.format('<span foreground="#00ff00"> ᐅ</span> %s | %s | %s ', title, artist, album))
             end
         })
     else
-        widget:set_markup_silently('<span foreground="#ff6600"> || </span>')
+        widget:set_markup_silently('<span foreground="#ff6600"> ❚❚ </span>')
     end
 end, spotitext)
 spotify_scroller = wibox.widget {
@@ -735,17 +735,18 @@ end)
 
 client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
-client.connect_signal("property::urgent", function(c)
-                                            if (c.urgent) then
-                                              naughty.notify({ bg = "#00A4FFC8",
-                                                               timeout = 10,
-                                                               title = "Ding ding!",
-                                                               run = function(n)
-                                                                       c.first_tag:view_only()
-                                                                       naughty.destroy(n, naughty.notificationClosedReason.dismissedByUser)
-                                                                     end,
-                                                               text = string.format("Client %s (tag %s) wants your attention!", c.name, c.first_tag.name)
-                                                             })
-                                            end
-                                          end)
+client.connect_signal("property::urgent",
+    function(c)
+        if (c.urgent) then
+          naughty.notify({ bg = "#00A4FFC8",
+                           timeout = 10,
+                           title = "Ding ding!",
+                           run = function(n)
+                                   c.first_tag:view_only()
+                                   naughty.destroy(n, naughty.notificationClosedReason.dismissedByUser)
+                                 end,
+                           text = string.format("Client %s (tag %s) wants your attention!", c.name, c.first_tag.name)
+                         })
+        end
+    end)
 -- }}}
