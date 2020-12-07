@@ -59,7 +59,7 @@ function run_once(cmd)
 end
 
 run_once("conky")
---run_once("picom --experimental-backends")
+run_once("picom --experimental-backends")
 run_once("dropbox")
 
 -- This is used later as the default terminal and editor to run.
