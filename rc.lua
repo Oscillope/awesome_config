@@ -198,18 +198,26 @@ end
 local function take_screenshot(opts)
     local date = os.date("%F_%H:%M:%S")
     local fname = os.getenv("HOME") .. "/sshot_" .. date .. ".png"
-    awful.spawn("maim " .. (function (s) if s then return s else return "" end end)(opts) .. " -qu " .. fname)
-    naughty.notify({ title = "Screenshot Captured", text = "Saved to: " .. fname })
+    awful.spawn.easy_async("maim " .. (function (s) if s then return s else return "" end end)(opts) .. " -qu " .. fname,
+        function (stdout, stderr, reason, code)
+            if code == 0 then
+                naughty.notify({ title = "Screenshot Captured", text = "Saved to: " .. fname })
+            else
+                naughty.notify({ title = "Screenshot Failed!", text = stderr, preset = naughty.presets.critical })
+            end
+        end
+    )
 end
 
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
 screen.connect_signal("property::geometry", set_wallpaper)
 
 -- ETH widget
-net_eth = net_widgets.indicator({interfaces = {"enp0s25"}, timeout = 20})
+net_eth = net_widgets.indicator({interfaces = {"enp0s25","wlp3s0","wlp0s26u1u2"}, timeout = 20})
 
 -- WIFI widget
 net_wifi = net_widgets.wireless({interface = "wlp3s0", timeout = 11})
+--net_wifi = net_widgets.wireless({interface = "wlp0s26u1u2", timeout = 11})
 
 -- MEM widget
 memicon = wibox.widget.imagebox()
@@ -221,8 +229,10 @@ vicious.register(memwidget, vicious.widgets.mem, '$2MB ', 13)
 cpuicon = wibox.widget.imagebox()
 cpuicon:set_image(beautiful.widget_cpu)
 cpuwidget = wibox.widget.textbox()
-vicious.register(cpuwidget, vicious.widgets.cpu, '$2% $3% $4% $5% ', 3)
+vicious.register(cpuwidget, vicious.widgets.cpu, ' $2% $3% $4% $5% ', 3)
 cpuicon:buttons(awful.util.table.join(awful.button({ }, 1, function () awful.util.spawn(tasks, false) end)))
+
+cputemp = awful.widget.watch('bash -c "sensors | grep -oe "[0-9]*.[0-9].C  " -m 1"', 12)
 
 -- Battery widget
 baticon = wibox.widget.imagebox()
@@ -306,7 +316,7 @@ function (widget, args)
     oldvol = args[1]
   end
   return '<span ' .. volcolor .. '>' .. args[1] .. ' </span>'
-end, 1, "Master")
+end, 6, "Master")
 
 -- Layout info widget
 function update_layout_info(t)
@@ -387,6 +397,7 @@ awful.screen.connect_for_each_screen(function(s)
             memwidget,
             arrl,
             cpuicon,
+            cputemp,
             cpuwidget,
             arrl,
             net_eth,
@@ -735,7 +746,7 @@ awful.rules.rules = {
 client.connect_signal("manage", function (c)
     -- Set the windows at the slave,
     -- i.e. put it at the end of others instead of setting it master.
-    -- if not awesome.startup then awful.client.setslave(c) end
+    if not awesome.startup then awful.client.setslave(c) end
 
     if awesome.startup and
       not c.size_hints.user_position

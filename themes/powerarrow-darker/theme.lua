@@ -5,29 +5,30 @@
 --                                            -
 --[[                                        ]]--
 
+local gears = require("gears")
 
 local theme = {}
 
 themes_dir                                  = os.getenv("HOME") .. "/.config/awesome/themes/powerarrow-darker"
 theme.wallpaper                             = "~/Pictures/wallpapers/06140010.jpg"
 
-theme.font                                  = "DejaVu Sans Mono for Powerline 8"
+theme.font                                  = "DejaVu Sans Mono 8"
 theme.fg_normal                             = "#DCDCCC"
-theme.fg_focus                              = "#bf00ff"
+theme.fg_focus                              = "#BF00FF"
 theme.fg_urgent                             = "#CC9393"
 theme.bg_normal                             = "#1A1A1AC8"
 -- theme.bg_focus                              = "#313131C8"
 theme.bg_urgent                             = "#1A1A1AC8"
 theme.border_width                          = "1"
 theme.border_normal                         = "#3F3F3F"
-theme.border_focus                          = "#bf00ff"
+theme.border_focus                          = "#BF00FF"
 theme.border_marked                         = "#CC9393"
 theme.titlebar_bg_focus                     = "#FFFFFFC8"
 theme.titlebar_bg_normal                    = "#FFFFFFC8"
-theme.taglist_fg_focus                      = "#bf00ff"
 theme.tasklist_bg_focus                     = "#1A1A1A00"
 theme.tasklist_bg_normal                    = "#31313100"
-theme.tasklist_fg_focus                     = "#bf00ff"
+theme.tasklist_fg_focus                     = "#E596FF"
+theme.wibar_bg                              = "linear:0,0:0,20:0,#4F4F4FC8:8,#1A1A1AC8"
 theme.textbox_widget_margin_top             = 1
 theme.notification_fg                       = theme.fg_normal
 theme.notification_bg                       = theme.bg_normal
@@ -42,8 +43,17 @@ theme.menu_width                            = "140"
 theme.awesome_icon                          = themes_dir .. "/icons/awesome.png"
 
 theme.menu_submenu_icon                     = themes_dir .. "/icons/submenu.png"
-theme.taglist_squares_sel                   = themes_dir .. "/icons/square_sel.png"
-theme.taglist_squares_unsel                 = themes_dir .. "/icons/square_unsel.png"
+--theme.taglist_squares_sel                   = themes_dir .. "/icons/square_sel.png"
+--theme.taglist_squares_unsel                 = themes_dir .. "/icons/square_unsel.png"
+theme.taglist_spacing                       = 4
+theme.taglist_fg_focus                      = theme.fg_normal
+theme.taglist_fg_urgent                     = theme.fg_normal
+theme.taglist_bg_urgent                     = "#CC6666A8"
+theme.taglist_bg_occupied                   = "linear:0,0:0,20:0,#E596FF80:8,#AD59C980"
+theme.taglist_bg_focus                      = "linear:0,0:0,12:0,#E596FF:4,#AD59C9"
+theme.taglist_shape                         = gears.shape.powerline
+theme.taglist_shape_focus                   = gears.shape.circle
+theme.taglist_shape_urgent                  = gears.shape.rounded_rect
 
 theme.layout_tile                           = themes_dir .. "/icons/tile.png"
 theme.layout_tileleft                       = themes_dir .. "/icons/tileleft.png"
