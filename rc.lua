@@ -13,6 +13,7 @@ local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
 
 local quake = require("quake")
+local pavuctl = require("quake")
 
 local revelation = require("revelation")
 
@@ -60,9 +61,10 @@ end
 
 run_once("conky")
 run_once("picom --experimental-backends")
+run_once("xscreensaver -no-splash")
 
 -- This is used later as the default terminal and editor to run.
-terminal = "termite"
+terminal = "alacritty"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -77,10 +79,10 @@ modkey = "Mod4"
 awful.layout.layouts = {
     awful.layout.suit.magnifier,
     awful.layout.suit.tile.left,
-    awful.layout.suit.fair.horizontal,
     awful.layout.suit.tile.bottom,
     awful.layout.suit.tile.top,
     awful.layout.suit.fair,
+    awful.layout.suit.fair.horizontal,
     awful.layout.suit.floating,
 }
 -- }}}
@@ -198,8 +200,15 @@ screen.connect_signal("property::geometry", set_wallpaper)
 local function take_screenshot(opts)
     local date = os.date("%F_%H:%M:%S")
     local fname = os.getenv("HOME") .. "/sshot_" .. date .. ".png"
-    awful.spawn("maim " .. (function (s) if s then return s else return "" end end)(opts) .. " -qu " .. fname)
-    naughty.notify({ title = "Screenshot Captured", text = "Saved to: " .. fname })
+    awful.spawn.easy_async("maim " .. (function (s) if s then return s else return "" end end)(opts) .. " -qu " .. fname,
+        function (stdout, stderr, reason, code)
+            if code == 0 then
+                naughty.notify({ title = "Screenshot Captured", text = "Saved to: " .. fname })
+            else
+                naughty.notify({ title = "Screenshot Failed!", text = stderr, preset = naughty.presets.critical })
+            end
+        end
+    )
 end
 
 -- Volume widget
@@ -221,7 +230,7 @@ function (widget, args)
       else volcolor = ""
       oldvol = args[1]
     end
-    return '<span font="DejaVu Sans Mono 8" ' .. volcolor .. '>' .. args[1] .. ' </span>'
+    return '<span font="' .. beautiful.font .. '" ' .. volcolor .. '>' .. args[1] .. ' </span>'
 end, 1, "Master")
 
 -- Layout info widget
@@ -316,10 +325,11 @@ awful.screen.connect_for_each_screen(function(s)
     s.mytasklist = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, tasklist_buttons)
 
     -- Create the wibox
-    s.mywibox = awful.wibar({ position = "top", screen = s })
+    s.mywibox = awful.wibar({ position = "top", screen = s, type = "panel" })
 
     -- Create the quake term
     s.quake = quake({ app = terminal, screen = s })
+    s.pavuctl = pavuctl({ app = "pavucontrol-qt", screen = s, name = "pavucontrol-qt", argname = "" })
 
     -- Create a layout info widget
     s.mylayoutinfo = wibox.widget.textbox()
@@ -425,24 +435,24 @@ globalkeys = awful.util.table.join(
               {description = "quit awesome", group = "awesome"}),
 
     -- Custom program
-    awful.key({ "Control" }, "Up", function ()
-                                       awful.spawn("amixer set Master playback 1%+")
-                                       vicious.force({ volumewidget })
-                                   end, {description = "volume up", group = "sound"}),
-    awful.key({ "Control" }, "Down", function ()
-                                       awful.spawn("amixer set Master playback 1%-")
-                                       vicious.force({ volumewidget })
-                                     end, {description = "volume down", group = "sound"}),
+    awful.key({ }, "XF86AudioRaiseVolume", function ()
+                                               awful.spawn("amixer set Master playback 1%+")
+                                               vicious.force({ volumewidget })
+                                           end, {description = "volume up", group = "sound"}),
+    awful.key({ }, "XF86AudioLowerVolume", function ()
+                                               awful.spawn("amixer set Master playback 1%-")
+                                               vicious.force({ volumewidget })
+                                           end, {description = "volume down", group = "sound"}),
     awful.key({ modkey,        }, "a",      function () awful.spawn("qutebrowser") end,
               {description = "open a web browser", group = "launcher"}),
-    awful.key({ modkey,        }, "s",      function () awful.spawn("gvim") end,
-              {description = "open an editor", group = "launcher"}),
+    awful.key({ modkey,        }, "s",      function () awful.spawn("rofi -show gvim -modi gvim:~/Code/vimSelect.sh") end,
+              {description = "open a gvim session", group = "launcher"}),
     awful.key({ modkey,        }, "d",      function () awful.spawn("thunar") end,
               {description = "browse files", group = "launcher"}),
-    awful.key({ modkey,        }, "z",      function () awful.spawn("/home/jason/Code/sonos_linein.py") end,
+    awful.key({ modkey,        }, "z",      function () awful.spawn("sonos-linein") end,
               {description = "switch sonos to play linein", group = "sound"}),
 
-    awful.key({modkey, "Control"  }, "Escape",function () awful.spawn("xscreensaver-command -activate") end,
+    awful.key({ modkey, "Control"  }, "Escape",function () awful.spawn("xscreensaver-command -activate") end,
               {description = "lock screen", group = "launcher"}),
 
     awful.key({ }, "Print",         function () take_screenshot() end,
@@ -452,6 +462,8 @@ globalkeys = awful.util.table.join(
 
     awful.key({ modkey, }, "'", function () awful.screen.focused().quake:toggle() end,
               {description = "dropdown terminal", group = "launcher"}),
+    awful.key({ modkey, }, "/", function () awful.screen.focused().pavuctl:toggle() end,
+              {description = "dropdown mixer", group = "launcher"}),
 
     awful.key({ modkey,           }, "l",     function () awful.tag.incmwfact( 0.05)          end,
               {description = "increase master width factor", group = "layout"}),
@@ -482,8 +494,8 @@ globalkeys = awful.util.table.join(
               {description = "restore minimized", group = "client"}),
 
     -- Prompt
-    awful.key({ modkey },            "r",     function () awful.screen.focused().mypromptbox:run() end,
-              {description = "run prompt", group = "launcher"}),
+    awful.key({ modkey },            "r",     function () awful.spawn("rofi -show combi") end,
+              {description = "rofi prompt", group = "launcher"}),
 
     awful.key({ modkey }, "x",
               function ()
@@ -514,6 +526,8 @@ clientkeys = awful.util.table.join(
     awful.key({ modkey, "Control" }, "Return", function (c) c:swap(awful.client.getmaster()) end,
               {description = "move to master", group = "client"}),
     awful.key({ modkey,           }, "o",      function (c) c:move_to_screen()               end,
+              {description = "move to screen", group = "client"}),
+    awful.key({ modkey, "Shift"   }, "o",      function (c) c:move_to_screen(c.screen.index-1) end,
               {description = "move to screen", group = "client"}),
     awful.key({ modkey,           }, "t",      function (c) c.ontop = not c.ontop            end,
               {description = "toggle keep on top", group = "client"}),
@@ -658,9 +672,28 @@ awful.rules.rules = {
         }
       }, properties = { floating = true }},
 
-    -- Add titlebars to normal clients and dialogs
-    { rule_any = {type = { "normal", "dialog" }
-      }, properties = { titlebars_enabled = false }
+    { rule_any = {type = { "dialog" }},
+      properties = {
+              opacity = 0.8
+      }
+    },
+
+    { rule_any = {role = {"browser-window"}},
+      properties = {
+              opacity = 0.9,
+      }
+    },
+
+    { rule_any = {role = { "browser-window" }, class = { "Thunar" }},
+      properties = {
+              opacity = 0.9,
+      }
+    },
+
+    { rule_any = {class = { "Gvim" }},
+      properties = {
+              opacity = 0.9,
+      }
     },
 
     { rule_any = {class = {"Conky"}},
@@ -744,12 +777,18 @@ client.connect_signal("mouse::enter", function(c)
     end
 end)
 
-client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
-client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
+client.connect_signal("focus", function(c)
+    c.border_color = beautiful.border_focus
+    c.screen.mywibox.bg = "linear:0,0:0,24:0,#D6A6FFA0:8,#1A1A1AC8"
+    end)
+client.connect_signal("unfocus", function(c)
+    c.border_color = beautiful.border_normal
+    c.screen.mywibox.bg = beautiful.wibar_bg
+    end)
 client.connect_signal("property::urgent",
     function(c)
         if (c.urgent) then
-          naughty.notify({ bg = "#00A4FFC8",
+          naughty.notify({ bg = "#A76FFFC8",
                            timeout = 10,
                            title = "Ding ding!",
                            run = function(n)
