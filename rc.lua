@@ -16,6 +16,7 @@ local quake = require("quake")
 local pavuctl = require("quake")
 
 local revelation = require("revelation")
+local net_widgets = require("net_widgets")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -59,9 +60,8 @@ function run_once(cmd)
     awful.spawn.with_shell("pgrep -u $USER -x " .. findme .. " > /dev/null || (" .. cmd .. ")")
 end
 
-run_once("conky")
+--run_once("conky")
 run_once("picom --experimental-backends")
-run_once("xscreensaver -no-splash")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "alacritty"
@@ -137,7 +137,7 @@ mykeyboardlayout = awful.widget.keyboardlayout()
 -- Create a textclock widget
 mytextclock = wibox.widget.textclock()
 local month_calendar = awful.widget.calendar_popup.month({opacity = 60, bg = "#00000000"})
-month_calendar:attach( mytextclock, "tr", {on_hover=true})
+month_calendar:attach( mytextclock, "tr", {on_hover=false})
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = awful.util.table.join(
@@ -194,9 +194,6 @@ local function set_wallpaper(s)
     end
 end
 
--- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
-screen.connect_signal("property::geometry", set_wallpaper)
-
 local function take_screenshot(opts)
     local date = os.date("%F_%H:%M:%S")
     local fname = os.getenv("HOME") .. "/sshot_" .. date .. ".png"
@@ -210,6 +207,91 @@ local function take_screenshot(opts)
         end
     )
 end
+
+-- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
+screen.connect_signal("property::geometry", set_wallpaper)
+
+-- ETH widget
+net_eth = net_widgets.indicator({interfaces = {"enp0s13f0u1u4","wlan0"}, timeout = 20})
+
+-- WIFI widget
+net_wifi = net_widgets.wireless({interface = "wlan0", timeout = 11})
+
+-- MEM widget
+memicon = wibox.widget.imagebox()
+memicon:set_image(beautiful.widget_mem)
+memwidget = wibox.widget.textbox()
+vicious.register(memwidget, vicious.widgets.mem, '$2MB ', 13)
+
+-- CPU widget
+cpuicon = wibox.widget.imagebox()
+cpuicon:set_image(beautiful.widget_cpu)
+cpuwidget = wibox.widget.textbox()
+vicious.register(cpuwidget, vicious.widgets.cpu, ' $2% $3% $4% $5% $6% $7% $8% $9% ', 3)
+cpuicon:buttons(awful.util.table.join(awful.button({ }, 1, function () awful.util.spawn(tasks, false) end)))
+
+cputemp = awful.widget.watch('bash -c "sensors coretemp-isa-0000 | grep -oe "[0-9]*.[0-9].C  " -m 1"', 12)
+
+-- Battery widget
+baticon = wibox.widget.imagebox()
+baticon:set_image(beautiful.widget_battery)
+batwidget = wibox.widget.textbox()
+empty = 0
+low = 0
+oldlevel = 0
+vicious.register(batwidget, vicious.widgets.bat,
+function (widget, args)
+  -- plugged
+  if (args[1] ~= '-' and args[1] ~= '+') then
+    baticon:set_image(beautiful.widget_ac)
+    return 'AC '
+    -- critical
+  elseif (args[2] <= 5 and args[1] == '-') then
+    baticon:set_image(beautiful.widget_battery_empty)
+    if(empty == 0) then
+    naughty.notify({
+      text = "Below 5% Remaining.",
+      title = "Battery Low!",
+      position = "top_right",
+      timeout = 10,
+      fg="#000000",
+      bg="#ffffff",
+      screen = 1,
+      ontop = true,
+    })
+    empty = 1
+    end
+    -- low
+  elseif (args[2] <= 50 and args[1] == '-') then
+    baticon:set_image(beautiful.widget_battery_low)
+    if(low == 0 and args[2] <= 20) then
+    naughty.notify({
+      text = "Below 20% Remaining.",
+      title = "Battery Low!",
+      position = "top_right",
+      timeout = 10,
+      fg="#ffffff",
+      bg="#262729",
+      screen = 1,
+      ontop = true,
+    })
+    low = 1
+    end
+  elseif (args[1] == '+') then
+    baticon:set_image(beautiful.widget_ac)
+    low = 0
+    empty = 0
+  else
+    baticon:set_image(beautiful.widget_battery)
+    low = 0
+    empty = 0
+  end
+  if (args[2] ~= oldlevel) then	-- To save resources, only do this math if the level has changed.
+    batcolor = string.format('color="#%02x%02x%02x"', math.ceil(255 * -(args[2] / 100)^4) + 255, math.ceil(255 * (args[2] / 100)), math.ceil(255 * (args[2] / 100)^8))
+    oldlevel = args[2]
+  end
+  return '<span ' .. batcolor .. '>' .. args[2] .. '% </span>'
+end, 10, 'BAT0')
 
 -- Volume widget
 volicon = wibox.widget.imagebox()
@@ -238,56 +320,6 @@ function update_layout_info(t)
   t.screen.mylayoutinfo.text = string.format('Cols: %u Masters: %u ', t.column_count, t.master_count)
 end
 
--- Spotify widget
-status_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlaybackStatus"
-metadata_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Metadata"
-spotiwidget = awful.widget.watch(status_cmd, 8,
-function (widget, stdout, stderr, exitreason, exitcode)
-    if exitcode == 0 and stdout:match("Playing") then
-        local artist = nil
-        local title = nil
-        local album = nil
-        -- This stuff runs asynchronously, so the parent widget function can't expect to do anything with its output
-        -- (as it will have returned by then). But it still can use the local variables above. Scoping is weird, huh?
-        awful.spawn.with_line_callback(metadata_cmd, {
-            -- Called on every line of output. Parses dbus metadata and finds the correct strings.
-            stdout = function (line)
-                temp = line:match("^xesam:artist: (.*)")
-                if temp then
-                    artist = temp
-                    return
-                end
-                temp = line:match("^xesam:title: (.*)")
-                if temp then
-                    title = temp
-                    return
-                end
-                temp = line:match("^xesam:album: (.*)")
-                if temp then
-                    album = temp
-                    return
-                end
-            end,
-            -- Called when qdbus stops outputting. Writes the strings to the widget.
-            output_done = function ()
-                widget:set_markup_silently(
-                    string.format('<span foreground="#00ff00"> ᐅ</span> %s | %s | %s ', title, artist, album))
-            end
-        })
-    else
-        widget:set_markup_silently('<span foreground="#ff6600"> ❚❚ </span>')
-    end
-end, spotitext)
-spotify_scroller = wibox.widget {
-    layout = wibox.container.scroll.horizontal,
-    max_size = 420,
-    step_function = wibox.container.scroll.step_functions
-                    .waiting_nonlinear_back_and_forth,
-    speed = 50,
-    { widget = spotiwidget }
-}
-
--- Separators
 arrl = wibox.widget.imagebox()
 arrl:set_image(beautiful.arrl)
 arrl_dl = wibox.widget.imagebox()
@@ -306,7 +338,7 @@ awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
 
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1 + s.index])
+    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[2])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -325,7 +357,7 @@ awful.screen.connect_for_each_screen(function(s)
     s.mytasklist = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, tasklist_buttons)
 
     -- Create the wibox
-    s.mywibox = awful.wibar({ position = "top", screen = s, type = "panel" })
+    s.mywibox = awful.wibar({ position = (function (scr) if scr.index == 2 then return "bottom" else return "top" end end)(s), screen = s, type = "panel" })
 
     -- Create the quake term
     s.quake = quake({ app = terminal, screen = s })
@@ -356,19 +388,36 @@ awful.screen.connect_for_each_screen(function(s)
             awful.widget.only_on_screen(
                 wibox.widget {
                     layout = wibox.layout.fixed.horizontal,
-                        spotify_scroller,
-                        arrl,
-                        volicon,
-                        volumewidget,
-                        arrl,
-                        wibox.widget.systray(),
-                        arrl,
+                    volicon,
+                    volumewidget,
+                    arrl,
+                    memicon,
+                    memwidget,
+                    arrl,
+                    cpuicon,
+                    cputemp,
+                    cpuwidget,
+                    arrl,
+                    net_eth,
+                    net_wifi,
+                    arrl,
+                    baticon,
+                    batwidget,
+                    arrl,
                 },
-                "primary"
+                2
             ),
             mytextclock,
             arrl,
             s.mylayoutinfo,
+            awful.widget.only_on_screen(
+                wibox.widget {
+                    layout = wibox.layout.fixed.horizontal,
+                    arrl,
+                    wibox.widget.systray(),
+                },
+                "primary"
+            ),
             arrl_ld,
             s.mylayoutbox,
         },
@@ -449,11 +498,14 @@ globalkeys = awful.util.table.join(
               {description = "open a gvim session", group = "launcher"}),
     awful.key({ modkey,        }, "d",      function () awful.spawn("thunar") end,
               {description = "browse files", group = "launcher"}),
-    awful.key({ modkey,        }, "z",      function () awful.spawn("sonos-linein") end,
-              {description = "switch sonos to play linein", group = "sound"}),
 
-    awful.key({ modkey, "Control"  }, "Escape",function () awful.spawn("xscreensaver-command -activate") end,
+    awful.key({ }, "XF86ScreenSaver",function () awful.spawn("dm-tool lock") end,
               {description = "lock screen", group = "launcher"}),
+
+    awful.key({ }, "XF86MonBrightnessUp", function () awful.spawn("xbacklight -inc 10") end,
+              {description = "backlight up", group = "screen"}),
+    awful.key({ }, "XF86MonBrightnessDown", function () awful.spawn("xbacklight -dec 10") end,
+              {description = "backlight up", group = "screen"}),
 
     awful.key({ }, "Print",         function () take_screenshot() end,
               {description = "take screenshot", group = "screen"}),
@@ -526,8 +578,6 @@ clientkeys = awful.util.table.join(
     awful.key({ modkey, "Control" }, "Return", function (c) c:swap(awful.client.getmaster()) end,
               {description = "move to master", group = "client"}),
     awful.key({ modkey,           }, "o",      function (c) c:move_to_screen()               end,
-              {description = "move to screen", group = "client"}),
-    awful.key({ modkey, "Shift"   }, "o",      function (c) c:move_to_screen(c.screen.index-1) end,
               {description = "move to screen", group = "client"}),
     awful.key({ modkey,           }, "t",      function (c) c.ontop = not c.ontop            end,
               {description = "toggle keep on top", group = "client"}),

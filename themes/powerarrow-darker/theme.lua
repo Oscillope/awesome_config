@@ -10,7 +10,7 @@ local theme = {}
 local gears = require("gears")
 
 themes_dir                                  = os.getenv("HOME") .. "/.config/awesome/themes/powerarrow-darker"
-theme.wallpaper                             = "~/Pictures/wallpapers/R0000016.JPG"
+theme.wallpaper                             = "~/Pictures/wallpapers/seed_8835.png"
 
 theme.master_width_factor                   = 0.6
 theme.useless_gap                           = 3
