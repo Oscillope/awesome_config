@@ -548,6 +548,8 @@ globalkeys = awful.util.table.join(
     -- Prompt
     awful.key({ modkey },            "r",     function () awful.spawn("rofi -show combi") end,
               {description = "rofi prompt", group = "launcher"}),
+    awful.key({ modkey },            "e",     function () awful.spawn("rofi -show emoji") end,
+              {description = "rofi emoji picker", group = "launcher"}),
 
     awful.key({ modkey }, "x",
               function ()
