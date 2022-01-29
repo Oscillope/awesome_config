@@ -13,7 +13,7 @@ themes_dir                                  = os.getenv("HOME") .. "/.config/awe
 theme.wallpaper                             = "~/Pictures/wallpapers/seed_8835.png"
 
 theme.master_width_factor                   = 0.6
-theme.useless_gap                           = 3
+theme.useless_gap                           = 2
 theme.gap_single_client                     = true
 
 theme.font                                  = "DejaVu Sans Mono 9"
