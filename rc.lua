@@ -239,8 +239,8 @@ function update_layout_info(t)
 end
 
 -- Spotify widget
-status_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlaybackStatus"
-metadata_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Metadata"
+status_cmd = "qdbus org.mpris.MediaPlayer2.cider /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlaybackStatus"
+metadata_cmd = "qdbus org.mpris.MediaPlayer2.cider /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Metadata"
 spotiwidget = awful.widget.watch(status_cmd, 8,
 function (widget, stdout, stderr, exitreason, exitcode)
     if exitcode == 0 and stdout:match("Playing") then
@@ -305,8 +305,9 @@ awful.screen.connect_for_each_screen(function(s)
     -- Wallpaper
     set_wallpaper(s)
 
+    local sstr = tostring(s.index)
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[2])
+    awful.tag({ sstr .. ".1", sstr .. ".2", sstr .. ".3", sstr .. ".4", sstr .. ".5", sstr .. ".6", sstr .. ".7", sstr .. ".8", sstr .. ".9" }, s, awful.layout.layouts[2])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -464,6 +465,10 @@ globalkeys = awful.util.table.join(
                                                awful.spawn("amixer set Master playback 1%-")
                                                vicious.force({ volumewidget })
                                            end, {description = "volume down", group = "sound"}),
+    awful.key({ }, "XF86AudioPlay", function ()
+                                               awful.spawn("qdbus org.mpris.MediaPlayer2.cider /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause")
+                                               vicious.force({ spotiwidget })
+                                           end, {description = "play/pause", group = "sound"}),
     awful.key({ modkey,        }, "a",      function () awful.spawn("qutebrowser") end,
               {description = "open a web browser", group = "launcher"}),
     awful.key({ modkey,        }, "s",      function () awful.spawn("rofi -show gvim -modi gvim:~/Code/vimSelect.sh") end,
@@ -503,7 +508,7 @@ globalkeys = awful.util.table.join(
     awful.key({ modkey, "Shift"   }, "space", function () awful.layout.inc(-1)                end,
               {description = "select previous", group = "layout"}),
 
-    awful.key({ modkey, "Control" }, "n",
+    awful.key({ modkey, "Mod1" }, "n",
               function ()
                   local c = awful.client.restore()
                   -- Focus restored client
@@ -577,27 +582,25 @@ for i = 1, 9 do
         -- View tag only.
         awful.key({ modkey }, "#" .. i + 9,
                   function ()
-                        local screen = awful.screen.focused()
-                        local tag = screen.tags[i]
+                        local tag = awful.tag.find_by_name(nil, "1." .. tostring(i))
                         if tag then
                            tag:view_only()
+                           awful.screen.focus(tag.screen)
                         end
                   end,
                   {description = "view tag #"..i, group = "tag"}),
         -- View tag on other screen.
-        awful.key({ modkey, "Mod1" }, "#" .. i + 9,
+        awful.key({ modkey, "Control" }, "#" .. i + 9,
                   function ()
-                        -- jump to screen
-                        awful.screen.focus_relative(1)
-                        local screen = awful.screen.focused()
-                        local tag = screen.tags[i]
+                        local tag = awful.tag.find_by_name(nil, "2." .. tostring(i))
                         if tag then
                            tag:view_only()
+                           awful.screen.focus(tag.screen)
                         end
                   end,
                   {description = "view tag #"..i.." on other screen", group = "tag"}),
         -- Toggle tag display.
-        awful.key({ modkey, "Control" }, "#" .. i + 9,
+        awful.key({ modkey, "Mod1" }, "#" .. i + 9,
                   function ()
                       local screen = awful.screen.focused()
                       local tag = screen.tags[i]
@@ -610,7 +613,7 @@ for i = 1, 9 do
         awful.key({ modkey, "Shift" }, "#" .. i + 9,
                   function ()
                       if client.focus then
-                          local tag = client.focus.screen.tags[i]
+                          local tag = awful.tag.find_by_name(nil, "1." .. tostring(i))
                           if tag then
                               client.focus:move_to_tag(tag)
                           end
@@ -618,11 +621,10 @@ for i = 1, 9 do
                   end,
                   {description = "move focused client to tag #"..i, group = "tag"}),
         -- Move client to tag on other screen.
-        awful.key({ modkey, "Mod1", "Shift" }, "#" .. i + 9,
+        awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
                   function ()
                       if client.focus then
-                          client.focus:move_to_screen()
-                          local tag = client.focus.screen.tags[i]
+                          local tag = awful.tag.find_by_name(nil, "2." .. tostring(i))
                           if tag then
                               client.focus:move_to_tag(tag)
                           end
@@ -630,7 +632,7 @@ for i = 1, 9 do
                   end,
                   {description = "move focused client to tag #"..i.." on other screen", group = "tag"}),
         -- Toggle tag on focused client.
-        awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
+        awful.key({ modkey, "Mod1", "Shift" }, "#" .. i + 9,
                   function ()
                       if client.focus then
                           local tag = client.focus.screen.tags[i]
