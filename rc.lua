@@ -62,6 +62,7 @@ end
 run_once("conky")
 run_once("picom")
 run_once("xscreensaver -no-splash")
+run_once("openrgb -p kpurple")
 
 -- This is used later as the default terminal and editor to run.
 terminal = "alacritty"
@@ -307,7 +308,7 @@ awful.screen.connect_for_each_screen(function(s)
 
     local sstr = tostring(s.index)
     -- Each screen has its own tag table.
-    awful.tag({ sstr .. ".1", sstr .. ".2", sstr .. ".3", sstr .. ".4", sstr .. ".5", sstr .. ".6", sstr .. ".7", sstr .. ".8", sstr .. ".9" }, s, awful.layout.layouts[2])
+    awful.tag({ sstr .. ".1", sstr .. ".2", sstr .. ".3", sstr .. ".4", sstr .. ".5", sstr .. ".6", sstr .. ".7", sstr .. ".8", sstr .. ".9" }, s, awful.layout.layouts[1 + s.index])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -725,6 +726,7 @@ awful.rules.rules = {
       properties = {
               border_width = 0,
               sticky = true,
+              screen = 2,
               focusable = false,
               floating = true,
               size_hints_honor = true
