@@ -59,11 +59,12 @@ function run_once(cmd)
 end
 
 run_once("conky")
---run_once("picom --experimental-backends")
+run_once("picom")
 run_once("dropbox")
+run_once("xset s 5400; xset dpms 5400 5400 5400")
 
 -- This is used later as the default terminal and editor to run.
-terminal = "termite"
+terminal = "alacritty"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -224,53 +225,53 @@ function update_layout_info(t)
 end
 
 -- Spotify widget
-status_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlaybackStatus"
-metadata_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Metadata"
-spotiwidget = awful.widget.watch(status_cmd, 8,
-function (widget, stdout, stderr, exitreason, exitcode)
-    if exitcode == 0 and stdout:match("Playing") then
-        local artist = nil
-        local title = nil
-        local album = nil
-        -- This stuff runs asynchronously, so the parent widget function can't expect to do anything with its output
-        -- (as it will have returned by then). But it still can use the local variables above. Scoping is weird, huh?
-        awful.spawn.with_line_callback(metadata_cmd, {
-            -- Called on every line of output. Parses dbus metadata and finds the correct strings.
-            stdout = function (line)
-                temp = line:match("^xesam:artist: (.*)")
-                if temp then
-                    artist = temp
-                    return
-                end
-                temp = line:match("^xesam:title: (.*)")
-                if temp then
-                    title = temp
-                    return
-                end
-                temp = line:match("^xesam:album: (.*)")
-                if temp then
-                    album = temp
-                    return
-                end
-            end,
-            -- Called when qdbus stops outputting. Writes the strings to the widget.
-            output_done = function ()
-                widget:set_markup_silently(
-                    string.format('<span foreground="#00ff00"> ᐅ</span> %s | %s | %s ', title, artist, album))
-            end
-        })
-    else
-        widget:set_markup_silently('<span foreground="#ff6600"> ❚❚ </span>')
-    end
-end, spotitext)
-spotify_scroller = wibox.widget {
-    layout = wibox.container.scroll.horizontal,
-    max_size = 420,
-    step_function = wibox.container.scroll.step_functions
-                    .waiting_nonlinear_back_and_forth,
-    speed = 50,
-    { widget = spotiwidget }
-}
+-- status_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlaybackStatus"
+-- metadata_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Metadata"
+-- spotiwidget = awful.widget.watch(status_cmd, 8,
+-- function (widget, stdout, stderr, exitreason, exitcode)
+--     if exitcode == 0 and stdout:match("Playing") then
+--         local artist = nil
+--         local title = nil
+--         local album = nil
+--         -- This stuff runs asynchronously, so the parent widget function can't expect to do anything with its output
+--         -- (as it will have returned by then). But it still can use the local variables above. Scoping is weird, huh?
+--         awful.spawn.with_line_callback(metadata_cmd, {
+--             -- Called on every line of output. Parses dbus metadata and finds the correct strings.
+--             stdout = function (line)
+--                 temp = line:match("^xesam:artist: (.*)")
+--                 if temp then
+--                     artist = temp
+--                     return
+--                 end
+--                 temp = line:match("^xesam:title: (.*)")
+--                 if temp then
+--                     title = temp
+--                     return
+--                 end
+--                 temp = line:match("^xesam:album: (.*)")
+--                 if temp then
+--                     album = temp
+--                     return
+--                 end
+--             end,
+--             -- Called when qdbus stops outputting. Writes the strings to the widget.
+--             output_done = function ()
+--                 widget:set_markup_silently(
+--                     string.format('<span foreground="#00ff00"> ᐅ</span> %s | %s | %s ', title, artist, album))
+--             end
+--         })
+--     else
+--         widget:set_markup_silently('<span foreground="#ff6600"> ❚❚ </span>')
+--     end
+-- end, spotitext)
+-- spotify_scroller = wibox.widget {
+--     layout = wibox.container.scroll.horizontal,
+--     max_size = 420,
+--     step_function = wibox.container.scroll.step_functions
+--                     .waiting_nonlinear_back_and_forth,
+--     speed = 50,
+--     { widget = spotiwidget }
+-- }
 
 -- Separators
 arrl = wibox.widget.imagebox()
@@ -340,8 +341,6 @@ awful.screen.connect_for_each_screen(function(s)
             awful.widget.only_on_screen(
                 wibox.widget {
                     layout = wibox.layout.fixed.horizontal,
-                        spotify_scroller,
-                        arrl,
                         volicon,
                         volumewidget,
                         arrl,

@@ -44,6 +44,12 @@ theme.mouse_finder_color                    = "#CC9393"
 theme.menu_height                           = "16"
 theme.menu_width                            = "140"
 
+theme.graph_bg                              = theme.bg_normal
+theme.progressbar_bg                        = theme.bg_normal
+theme.progressbar_border_color              = "#606060"
+theme.progressbar_border_width              = 1
+theme.progressbar_fg                        = theme.fg_normal
+
 theme.awesome_icon                          = themes_dir .. "/icons/awesome.png"
 
 theme.menu_submenu_icon                     = themes_dir .. "/icons/submenu.png"
