@@ -13,6 +13,7 @@ local menubar = require("menubar")
 local hotkeys_popup = require("awful.hotkeys_popup").widget
 
 local quake = require("quake")
+local pavuctl = require("quake")
 
 local revelation = require("revelation")
 
@@ -79,10 +80,10 @@ modkey = "Mod4"
 awful.layout.layouts = {
     awful.layout.suit.magnifier,
     awful.layout.suit.tile.left,
-    awful.layout.suit.fair.horizontal,
     awful.layout.suit.tile.bottom,
     awful.layout.suit.tile.top,
     awful.layout.suit.fair,
+    awful.layout.suit.fair.horizontal,
     awful.layout.suit.floating,
 }
 -- }}}
@@ -197,6 +198,20 @@ end
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
 screen.connect_signal("property::geometry", set_wallpaper)
 
+local function take_screenshot(opts)
+    local date = os.date("%F_%H:%M:%S")
+    local fname = os.getenv("HOME") .. "/sshot_" .. date .. ".png"
+    awful.spawn.easy_async("maim " .. (function (s) if s then return s else return "" end end)(opts) .. " -qu " .. fname,
+        function (stdout, stderr, reason, code)
+            if code == 0 then
+                naughty.notify({ title = "Screenshot Captured", text = "Saved to: " .. fname })
+            else
+                naughty.notify({ title = "Screenshot Failed!", text = stderr, preset = naughty.presets.critical })
+            end
+        end
+    )
+end
+
 -- Volume widget
 volicon = wibox.widget.imagebox()
 volicon:set_image(beautiful.widget_vol)
@@ -216,62 +231,13 @@ function (widget, args)
       else volcolor = ""
       oldvol = args[1]
     end
-    return '<span font="DejaVu Sans Mono 8" ' .. volcolor .. '>' .. args[1] .. ' </span>'
+    return '<span font="' .. beautiful.font .. '" ' .. volcolor .. '>' .. args[1] .. ' </span>'
 end, 1, "Master")
 
 -- Layout info widget
 function update_layout_info(t)
   t.screen.mylayoutinfo.text = string.format('Cols: %u Masters: %u ', t.column_count, t.master_count)
 end
-
--- Spotify widget
--- status_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlaybackStatus"
--- metadata_cmd = "qdbus org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Metadata"
--- spotiwidget = awful.widget.watch(status_cmd, 8,
--- function (widget, stdout, stderr, exitreason, exitcode)
---     if exitcode == 0 and stdout:match("Playing") then
---         local artist = nil
---         local title = nil
---         local album = nil
---         -- This stuff runs asynchronously, so the parent widget function can't expect to do anything with its output
---         -- (as it will have returned by then). But it still can use the local variables above. Scoping is weird, huh?
---         awful.spawn.with_line_callback(metadata_cmd, {
---             -- Called on every line of output. Parses dbus metadata and finds the correct strings.
---             stdout = function (line)
---                 temp = line:match("^xesam:artist: (.*)")
---                 if temp then
---                     artist = temp
---                     return
---                 end
---                 temp = line:match("^xesam:title: (.*)")
---                 if temp then
---                     title = temp
---                     return
---                 end
---                 temp = line:match("^xesam:album: (.*)")
---                 if temp then
---                     album = temp
---                     return
---                 end
---             end,
---             -- Called when qdbus stops outputting. Writes the strings to the widget.
---             output_done = function ()
---                 widget:set_markup_silently(
---                     string.format('<span foreground="#00ff00"> ᐅ</span> %s | %s | %s ', title, artist, album))
---             end
---         })
---     else
---         widget:set_markup_silently('<span foreground="#ff6600"> ❚❚ </span>')
---     end
--- end, spotitext)
--- spotify_scroller = wibox.widget {
---     layout = wibox.container.scroll.horizontal,
---     max_size = 420,
---     step_function = wibox.container.scroll.step_functions
---                     .waiting_nonlinear_back_and_forth,
---     speed = 50,
---     { widget = spotiwidget }
--- }
 
 -- Separators
 arrl = wibox.widget.imagebox()
@@ -291,8 +257,9 @@ awful.screen.connect_for_each_screen(function(s)
     -- Wallpaper
     set_wallpaper(s)
 
+    local sstr = tostring(s.index)
     -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1 + s.index])
+    awful.tag({ sstr .. ".1", sstr .. ".2", sstr .. ".3", sstr .. ".4", sstr .. ".5", sstr .. ".6", sstr .. ".7", sstr .. ".8", sstr .. ".9" }, s, awful.layout.layouts[1 + s.index])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -311,10 +278,11 @@ awful.screen.connect_for_each_screen(function(s)
     s.mytasklist = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, tasklist_buttons)
 
     -- Create the wibox
-    s.mywibox = awful.wibar({ position = "top", screen = s })
+    s.mywibox = awful.wibar({ position = "top", screen = s, type = "panel" })
 
     -- Create the quake term
-    s.quake = quake({ app = terminal, screen = s })
+    s.quake = quake({ app = terminal, screen = s, height = 0.33 })
+    s.pavuctl = pavuctl({ app = "pavucontrol-qt", screen = s, name = "pavucontrol-qt", argname = "", height = 0.42 })
 
     -- Create a layout info widget
     s.mylayoutinfo = wibox.widget.textbox()
@@ -380,28 +348,49 @@ globalkeys = awful.util.table.join(
 
     awful.key({ modkey,           }, "j",
         function ()
-            awful.client.focus.byidx( 1)
+            awful.client.focus.global_bydirection("down")
         end,
-        {description = "focus next by index", group = "client"}
+        {description = "focus below", group = "client"}
     ),
     awful.key({ modkey,           }, "k",
         function ()
-            awful.client.focus.byidx(-1)
+            awful.client.focus.global_bydirection("up")
         end,
-        {description = "focus previous by index", group = "client"}
+        {description = "focus above", group = "client"}
+    ),
+    awful.key({ modkey,           }, "h",
+        function ()
+            awful.client.focus.global_bydirection("left")
+        end,
+        {description = "focus left", group = "client"}
+    ),
+    awful.key({ modkey,           }, "l",
+        function ()
+            awful.client.focus.global_bydirection("right")
+        end,
+        {description = "focus right", group = "client"}
     ),
     awful.key({ modkey,           }, "w", function () mymainmenu:show() end,
               {description = "show main menu", group = "awesome"}),
 
     -- Layout manipulation
-    awful.key({ modkey, "Shift"   }, "j", function () awful.client.swap.byidx(  1)    end,
-              {description = "swap with next client by index", group = "client"}),
-    awful.key({ modkey, "Shift"   }, "k", function () awful.client.swap.byidx( -1)    end,
-              {description = "swap with previous client by index", group = "client"}),
-    awful.key({ modkey, "Control" }, "j", function () awful.screen.focus_relative( 1) end,
-              {description = "focus the next screen", group = "screen"}),
-    awful.key({ modkey, "Control" }, "k", function () awful.screen.focus_relative(-1) end,
-              {description = "focus the previous screen", group = "screen"}),
+    awful.key({ modkey, "Control" }, "j", function ()
+        awful.client.swap.global_bydirection("down")
+    end,
+              {description = "swap with client below", group = "client"}),
+    awful.key({ modkey, "Control" }, "k", function ()
+        awful.client.swap.global_bydirection("up")
+    end,
+              {description = "swap with client above", group = "client"}),
+    awful.key({ modkey, "Control" }, "h", function ()
+        awful.client.swap.global_bydirection("left")
+    end,
+              {description = "swap with client to the left", group = "client"}),
+    awful.key({ modkey, "Control" }, "l", function ()
+        awful.client.swap.global_bydirection("right")
+    end,
+              {description = "swap with client to the right", group = "client"}),
+
     awful.key({ modkey,           }, "u", awful.client.urgent.jumpto,
               {description = "jump to urgent client", group = "client"}),
     awful.key({ modkey,           }, "Tab", revelation,
@@ -418,47 +407,54 @@ globalkeys = awful.util.table.join(
               {description = "quit awesome", group = "awesome"}),
 
     -- Custom program
-    awful.key({ "Control" }, "Up", function ()
-                                       awful.spawn("amixer set Master playback 1%+")
-                                       vicious.force({ volumewidget })
-                                   end, {description = "volume up", group = "sound"}),
-    awful.key({ "Control" }, "Down", function ()
-                                       awful.spawn("amixer set Master playback 1%-")
-                                       vicious.force({ volumewidget })
-                                     end, {description = "volume down", group = "sound"}),
+    awful.key({ }, "XF86AudioRaiseVolume", function ()
+                                               awful.spawn("amixer set Master playback 1%+")
+                                               vicious.force({ volumewidget })
+                                           end, {description = "volume up", group = "sound"}),
+    awful.key({ }, "XF86AudioLowerVolume", function ()
+                                               awful.spawn("amixer set Master playback 1%-")
+                                               vicious.force({ volumewidget })
+                                           end, {description = "volume down", group = "sound"}),
     awful.key({ modkey,        }, "a",      function () awful.spawn("qutebrowser") end,
               {description = "open a web browser", group = "launcher"}),
-    awful.key({ modkey,        }, "s",      function () awful.spawn("gvim") end,
-              {description = "open an editor", group = "launcher"}),
+    awful.key({ modkey,        }, "s",      function () awful.spawn("rofi -show gvim -modi gvim:~/Code/vimSelect.sh") end,
+              {description = "open a gvim session", group = "launcher"}),
     awful.key({ modkey,        }, "d",      function () awful.spawn("thunar") end,
               {description = "browse files", group = "launcher"}),
-    awful.key({ modkey,        }, "z",      function () awful.spawn("/home/jason/Code/sonos_linein.py") end,
+    awful.key({ modkey,        }, "z",      function () awful.spawn("sonos-linein") end,
               {description = "switch sonos to play linein", group = "sound"}),
 
-    awful.key({modkey, "Control"  }, "Escape",function () awful.spawn("xscreensaver-command -activate") end,
+    awful.key({ modkey, "Control"  }, "Escape",function () awful.spawn("xscreensaver-command -activate") end,
               {description = "lock screen", group = "launcher"}),
+
+    awful.key({ "Shift" }, "Print",         function () take_screenshot() end,
+              {description = "take screenshot", group = "screen"}),
+    awful.key({ }, "Print", function () take_screenshot("-s") end,
+              {description = "take partial screenshot", group = "screen"}),
 
     awful.key({ modkey, }, "'", function () awful.screen.focused().quake:toggle() end,
               {description = "dropdown terminal", group = "launcher"}),
+    awful.key({ modkey, }, "/", function () awful.screen.focused().pavuctl:toggle() end,
+              {description = "dropdown mixer", group = "launcher"}),
 
-    awful.key({ modkey,           }, "l",     function () awful.tag.incmwfact( 0.05)          end,
+    awful.key({ modkey, "Shift"   }, "h",     function () awful.tag.incmwfact( 0.05)          end,
               {description = "increase master width factor", group = "layout"}),
-    awful.key({ modkey,           }, "h",     function () awful.tag.incmwfact(-0.05)          end,
+    awful.key({ modkey, "Shift"   }, "l",     function () awful.tag.incmwfact(-0.05)          end,
               {description = "decrease master width factor", group = "layout"}),
-    awful.key({ modkey, "Shift"   }, "h",     function () awful.tag.incnmaster( 1, nil, true) end,
+    awful.key({ modkey, "Shift"   }, "n",     function () awful.tag.incnmaster( 1, nil, true) end,
               {description = "increase the number of master clients", group = "layout"}),
-    awful.key({ modkey, "Shift"   }, "l",     function () awful.tag.incnmaster(-1, nil, true) end,
+    awful.key({ modkey, "Shift"   }, "m",     function () awful.tag.incnmaster(-1, nil, true) end,
               {description = "decrease the number of master clients", group = "layout"}),
-    awful.key({ modkey, "Control" }, "h",     function () awful.tag.incncol( 1, nil, true)    end,
+    awful.key({ modkey, "Control" }, "n",     function () awful.tag.incncol( 1, nil, true)    end,
               {description = "increase the number of columns", group = "layout"}),
-    awful.key({ modkey, "Control" }, "l",     function () awful.tag.incncol(-1, nil, true)    end,
+    awful.key({ modkey, "Control" }, "m",     function () awful.tag.incncol(-1, nil, true)    end,
               {description = "decrease the number of columns", group = "layout"}),
     awful.key({ modkey,           }, "space", function () awful.layout.inc( 1)                end,
               {description = "select next", group = "layout"}),
     awful.key({ modkey, "Shift"   }, "space", function () awful.layout.inc(-1)                end,
               {description = "select previous", group = "layout"}),
 
-    awful.key({ modkey, "Control" }, "n",
+    awful.key({ modkey, "Mod1" }, "n",
               function ()
                   local c = awful.client.restore()
                   -- Focus restored client
@@ -470,8 +466,10 @@ globalkeys = awful.util.table.join(
               {description = "restore minimized", group = "client"}),
 
     -- Prompt
-    awful.key({ modkey },            "r",     function () awful.screen.focused().mypromptbox:run() end,
-              {description = "run prompt", group = "launcher"}),
+    awful.key({ modkey },            "r",     function () awful.spawn("rofi -show combi") end,
+              {description = "rofi prompt", group = "launcher"}),
+    awful.key({ modkey },            "e",     function () awful.spawn("rofi -show emoji") end,
+              {description = "rofi emoji picker", group = "launcher"}),
 
     awful.key({ modkey }, "x",
               function ()
@@ -503,6 +501,8 @@ clientkeys = awful.util.table.join(
               {description = "move to master", group = "client"}),
     awful.key({ modkey,           }, "o",      function (c) c:move_to_screen()               end,
               {description = "move to screen", group = "client"}),
+    awful.key({ modkey, "Shift"   }, "o",      function (c) c:move_to_screen(c.screen.index-1) end,
+              {description = "move to screen", group = "client"}),
     awful.key({ modkey,           }, "t",      function (c) c.ontop = not c.ontop            end,
               {description = "toggle keep on top", group = "client"}),
     awful.key({ modkey,           }, "n",
@@ -528,27 +528,25 @@ for i = 1, 9 do
         -- View tag only.
         awful.key({ modkey }, "#" .. i + 9,
                   function ()
-                        local screen = awful.screen.focused()
-                        local tag = screen.tags[i]
+                        local tag = awful.tag.find_by_name(nil, "1." .. tostring(i))
                         if tag then
                            tag:view_only()
+                           awful.screen.focus(tag.screen)
                         end
                   end,
                   {description = "view tag #"..i, group = "tag"}),
         -- View tag on other screen.
-        awful.key({ modkey, "Mod1" }, "#" .. i + 9,
+        awful.key({ modkey, "Control" }, "#" .. i + 9,
                   function ()
-                        -- jump to screen
-                        awful.screen.focus_relative(1)
-                        local screen = awful.screen.focused()
-                        local tag = screen.tags[i]
+                        local tag = awful.tag.find_by_name(nil, "2." .. tostring(i))
                         if tag then
                            tag:view_only()
+                           awful.screen.focus(tag.screen)
                         end
                   end,
                   {description = "view tag #"..i.." on other screen", group = "tag"}),
         -- Toggle tag display.
-        awful.key({ modkey, "Control" }, "#" .. i + 9,
+        awful.key({ modkey, "Mod1" }, "#" .. i + 9,
                   function ()
                       local screen = awful.screen.focused()
                       local tag = screen.tags[i]
@@ -561,7 +559,7 @@ for i = 1, 9 do
         awful.key({ modkey, "Shift" }, "#" .. i + 9,
                   function ()
                       if client.focus then
-                          local tag = client.focus.screen.tags[i]
+                          local tag = awful.tag.find_by_name(nil, "1." .. tostring(i))
                           if tag then
                               client.focus:move_to_tag(tag)
                           end
@@ -569,11 +567,10 @@ for i = 1, 9 do
                   end,
                   {description = "move focused client to tag #"..i, group = "tag"}),
         -- Move client to tag on other screen.
-        awful.key({ modkey, "Mod1", "Shift" }, "#" .. i + 9,
+        awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
                   function ()
                       if client.focus then
-                          client.focus:move_to_screen()
-                          local tag = client.focus.screen.tags[i]
+                          local tag = awful.tag.find_by_name(nil, "2." .. tostring(i))
                           if tag then
                               client.focus:move_to_tag(tag)
                           end
@@ -581,7 +578,7 @@ for i = 1, 9 do
                   end,
                   {description = "move focused client to tag #"..i.." on other screen", group = "tag"}),
         -- Toggle tag on focused client.
-        awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
+        awful.key({ modkey, "Mod1", "Shift" }, "#" .. i + 9,
                   function ()
                       if client.focus then
                           local tag = client.focus.screen.tags[i]
@@ -646,15 +643,35 @@ awful.rules.rules = {
         }
       }, properties = { floating = true }},
 
-    -- Add titlebars to normal clients and dialogs
-    { rule_any = {type = { "normal", "dialog" }
-      }, properties = { titlebars_enabled = false }
+    { rule_any = {type = { "dialog" }},
+      properties = {
+              opacity = 0.8
+      }
+    },
+
+    { rule_any = {role = {"browser-window"}},
+      properties = {
+              opacity = 0.9,
+      }
+    },
+
+    { rule_any = {role = { "browser-window" }, class = { "Thunar" }},
+      properties = {
+              opacity = 0.9,
+      }
+    },
+
+    { rule_any = {class = { "Gvim" }},
+      properties = {
+              opacity = 0.9,
+      }
     },
 
     { rule_any = {class = {"Conky"}},
       properties = {
               border_width = 0,
               sticky = true,
+              screen = 2,
               focusable = false,
               floating = true,
               size_hints_honor = true
@@ -732,12 +749,18 @@ client.connect_signal("mouse::enter", function(c)
     end
 end)
 
-client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
-client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
+client.connect_signal("focus", function(c)
+    c.border_color = beautiful.border_focus
+    c.screen.mywibox.bg = "linear:0,0:0,24:0,#D6A6FFA0:8,#1A1A1AC8"
+    end)
+client.connect_signal("unfocus", function(c)
+    c.border_color = beautiful.border_normal
+    c.screen.mywibox.bg = beautiful.wibar_bg
+    end)
 client.connect_signal("property::urgent",
     function(c)
         if (c.urgent) then
-          naughty.notify({ bg = "#00A4FFC8",
+          naughty.notify({ bg = "#A76FFFC8",
                            timeout = 10,
                            title = "Ding ding!",
                            run = function(n)
