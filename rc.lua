@@ -259,7 +259,7 @@ awful.screen.connect_for_each_screen(function(s)
 
     local sstr = tostring(s.index)
     -- Each screen has its own tag table.
-    awful.tag({ sstr .. ".1", sstr .. ".2", sstr .. ".3", sstr .. ".4", sstr .. ".5", sstr .. ".6", sstr .. ".7", sstr .. ".8", sstr .. ".9" }, s, awful.layout.layouts[1 + s.index])
+    awful.tag({ sstr .. ".1", sstr .. ".2", sstr .. ".3", sstr .. ".4", sstr .. ".5", sstr .. ".6", sstr .. ".7", sstr .. ".8", sstr .. ".9" }, s, awful.layout.layouts[1])
 
     -- Create a promptbox for each screen
     s.mypromptbox = awful.widget.prompt()
@@ -417,7 +417,7 @@ globalkeys = awful.util.table.join(
                                            end, {description = "volume down", group = "sound"}),
     awful.key({ modkey,        }, "a",      function () awful.spawn("qutebrowser") end,
               {description = "open a web browser", group = "launcher"}),
-    awful.key({ modkey,        }, "s",      function () awful.spawn("rofi -show gvim -modi gvim:~/Code/vimSelect.sh") end,
+    awful.key({ modkey,        }, "s",      function () awful.spawn("gvim") end,
               {description = "open a gvim session", group = "launcher"}),
     awful.key({ modkey,        }, "d",      function () awful.spawn("thunar") end,
               {description = "browse files", group = "launcher"}),
@@ -671,7 +671,7 @@ awful.rules.rules = {
       properties = {
               border_width = 0,
               sticky = true,
-              screen = 2,
+              screen = 1,
               focusable = false,
               floating = true,
               size_hints_honor = true
